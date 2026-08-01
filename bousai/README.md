@@ -1,0 +1,71 @@
+# 避難所・物資 状況ダッシュボード（Webアプリ）
+
+地震被災地の避難所の受入状況と物資の調達状況を、市民向けに公開するWebアプリです。
+サーバー不要で、GitHub Pages と GitHub API だけで動作します。
+
+| ファイル | 役割 |
+|---|---|
+| `index.html` | **市民向けページ**。`data.json` を読み込んで表示（誰でも閲覧可） |
+| `admin.html` | **管理者画面**。フォームで入力し、GitHub API 経由で `data.json` を更新 |
+| `data.json` | 表示データ本体。管理者画面の保存で自動更新される |
+
+## 仕組み
+
+```
+管理者 ── admin.html ──(GitHub APIでdata.jsonをコミット)──▶ GitHubリポジトリ
+                                                              │
+市民 ◀── index.html ◀──(data.jsonを取得。5分ごとに自動更新)──┘ (GitHub Pages)
+```
+
+- 市民向けページは閲覧のみ。管理者画面での保存が、そのままリポジトリへのコミットになります（更新履歴が全部残ります）。
+- 避難者数の推移グラフは、管理者が保存するたびに「その日の地区別合計」が自動記録されます（同じ日に複数回保存した場合は上書き）。
+
+## 公開手順（初回のみ）
+
+1. **リポジトリを public にする**（GitHub Pages の無料利用には public が必要です。
+   private のままにする場合は GitHub Pro 等が必要）
+2. GitHub のリポジトリページ → **Settings → Pages** →
+   Branch を `main` / `(root)` にして Save
+3. 数分後、次のURLで公開されます
+   - 市民向け: `https://akiyoshi-sawada.github.io/soccer-manual/bousai/`
+   - 管理者用: `https://akiyoshi-sawada.github.io/soccer-manual/bousai/admin.html`
+
+## 管理者の準備（管理者ごとに1回）
+
+管理者画面での保存には GitHub のアクセストークンが必要です。
+
+1. GitHub にログイン → 右上アイコン → **Settings**
+2. 左メニュー最下部 **Developer settings** → **Personal access tokens → Fine-grained tokens** → **Generate new token**
+3. 設定:
+   - **Repository access**: Only select repositories → このリポジトリだけを選択
+   - **Permissions → Repository permissions → Contents**: **Read and write**
+   - 有効期限は運用に合わせて（例: 90日）
+4. 生成されたトークン（`github_pat_...`）を管理者画面の「アクセストークン」欄に貼り付け
+
+- トークンは GitHub 以外には送信されません。「この端末に保存する」を有効にするとブラウザ（localStorage）に保存されます。共用端末では無効にしてください。
+- 管理者を増やす場合は、リポジトリに書き込み権限のあるユーザー（Collaborator）を追加し、各自でトークンを作成してもらいます。
+
+## 日々の運用
+
+1. 管理者画面を開く → 「最新データを読み込む」
+2. 避難所の人数・物資の数量を修正（行の追加・削除も可能）
+3. 「保存して公開」→ 1〜2分で市民向けページに反映
+
+複数の管理者が同時に保存した場合は、後から保存した人の画面で自動的に最新版を取り直して再保存します（それでも競合する場合はエラーになるので、読み込み直してから再入力してください）。
+
+## 制約と注意
+
+- **反映まで1〜2分**: GitHub Pages のデプロイに時間がかかるため、リアルタイム更新ではありません（市民向けページは5分ごとに自動再取得します）。
+- **データは全公開**: リポジトリが public のため、`data.json` の内容は誰でも見られます。個人情報（避難者名簿など）は絶対に入れないでください。
+- 秒単位の即時反映や、GitHubアカウントを持たない管理者・入力権限の細かい管理が必要になったら、Firebase / Supabase などのバックエンドへの移行を検討してください（データ構造はそのまま使えます）。
+
+## リポジトリを移す場合
+
+`admin.html` 冒頭の設定を書き換えてください:
+
+```js
+const OWNER  = "Akiyoshi-Sawada";
+const REPO   = "soccer-manual";
+const BRANCH = "main";
+const PATH   = "bousai/data.json";
+```
