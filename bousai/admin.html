@@ -137,10 +137,10 @@ td.act{width:4.5em; text-align:center; white-space:nowrap}
 
   <section class="card">
     <h2>物資の調達状況</h2>
-    <p class="desc">品目ごとの必要量・在庫・調達手配中の量を入力してください。必要量が0の品目は「入力待ち」扱いとなり、市民向けページには表示されません。</p>
+    <p class="desc">「1人1日あたり」を入力すると、必要量/日は <b>現在の避難者数×1人1日あたり</b> で自動計算され、避難者数を変えると自動で追従します（例: 飲料水6本、食料3食、簡易トイレ0.02基=50人に1基）。人数から計算できない品目（ミルク等）は「1人1日あたり」を空欄にして必要量を手入力してください。必要量0の品目は「入力待ち」扱いで市民向けページには表示されません。</p>
     <div class="tablewrap">
       <table>
-        <thead><tr><th>品目名</th><th>単位</th><th style="text-align:right">必要量</th><th style="text-align:right">在庫</th><th style="text-align:right">調達手配中</th><th></th></tr></thead>
+        <thead><tr><th>品目名</th><th>単位</th><th style="text-align:right">1人1日あたり</th><th style="text-align:right">必要量/日</th><th style="text-align:right">在庫</th><th style="text-align:right">調達手配中</th><th></th></tr></thead>
         <tbody id="supplyBody"></tbody>
       </table>
     </div>
@@ -239,7 +239,7 @@ function inputCell(value, opts){
   const td = document.createElement("td");
   if (opts.num) td.className = "num";
   const inp = document.createElement("input");
-  if (opts.num){ inp.type = "number"; inp.min = "0"; inp.step = "1"; }
+  if (opts.num){ inp.type = "number"; inp.min = "0"; inp.step = opts.step || "1"; }
   else inp.type = "text";
   if (opts.placeholder) inp.placeholder = opts.placeholder;
   inp.value = value;
@@ -325,18 +325,47 @@ function supplyRow(s){
   const tr = document.createElement("tr");
   const name = inputCell(s.name, {placeholder:"品目名"});
   const unit = inputCell(s.unit, {placeholder:"個・枚 など"});
+  const per = inputCell(s.perPerson || "", {num:true, step:"0.01", placeholder:"自動計算に使用"});
   const req = inputCell(s.required, {num:true});
   const stock = inputCell(s.stock, {num:true});
   const inc = inputCell(s.incoming, {num:true});
-  tr.append(name.td, unit.td, req.td, stock.td, inc.td, delCell(tr));
-  tr._get = () => ({
-    name: name.inp.value.trim(),
-    unit: unit.inp.value.trim(),
-    required: Math.max(0, Math.round(Number(req.inp.value) || 0)),
-    stock: Math.max(0, Math.round(Number(stock.inp.value) || 0)),
-    incoming: Math.max(0, Math.round(Number(inc.inp.value) || 0))
-  });
+  tr.append(name.td, unit.td, per.td, req.td, stock.td, inc.td, delCell(tr));
+  // 1人1日あたりが入っている行は必要量を自動計算して編集不可にする
+  tr._auto = () => {
+    const p = parseFloat(per.inp.value);
+    if (p > 0){
+      req.inp.value = Math.ceil(totalOccupantsInput() * p);
+      req.inp.disabled = true;
+      req.inp.title = "避難者数×1人1日あたりで自動計算";
+    } else {
+      req.inp.disabled = false;
+      req.inp.title = "";
+    }
+  };
+  per.inp.addEventListener("input", tr._auto);
+  tr._auto();
+  tr._get = () => {
+    const p = parseFloat(per.inp.value);
+    const o = {
+      name: name.inp.value.trim(),
+      unit: unit.inp.value.trim(),
+      required: Math.max(0, Math.round(Number(req.inp.value) || 0)),
+      stock: Math.max(0, Math.round(Number(stock.inp.value) || 0)),
+      incoming: Math.max(0, Math.round(Number(inc.inp.value) || 0))
+    };
+    if (p > 0) o.perPerson = p;
+    return o;
+  };
   return tr;
+}
+
+// フォーム上の現在の総避難者数
+function totalOccupantsInput(){
+  return [...$("shelterBody").children].reduce((a,tr) => a + tr._get().occupants, 0);
+}
+// 避難者数の変更を必要量/日の自動計算に反映
+function refreshAutoRequired(){
+  [...$("supplyBody").children].forEach(tr => tr._auto && tr._auto());
 }
 
 function renderForms(){
@@ -347,6 +376,7 @@ function renderForms(){
     hb.appendChild(shortageRow({ shelter: s.name, item: e.item, qty: e.qty, unit: e.unit }))));
   const pb = $("supplyBody"); pb.textContent = "";
   data.supplies.forEach(s => pb.appendChild(supplyRow(s)));
+  refreshAutoRequired();
   const t = data.trend || {dates:[], byDistrict:{}};
   $("trendSummary").textContent = t.dates.length
     ? `記録済み: ${t.dates[0]} 〜 ${t.dates[t.dates.length-1]}（${t.dates.length}日分・${Object.keys(t.byDistrict).length}地区）`
@@ -358,6 +388,9 @@ $("addShelter").addEventListener("click", () => {
   $("shelterBody").appendChild(shelterRow({name:"", district:"", capacity:0, occupants:0, lat:"", lng:""}));
   dirty = true;
 });
+// 避難者数の入力・行削除に応じて必要量/日を追従させる
+$("shelterBody").addEventListener("input", refreshAutoRequired);
+$("shelterBody").addEventListener("click", () => setTimeout(refreshAutoRequired, 0));
 $("addShortage").addEventListener("click", () => {
   $("shortageBody").appendChild(shortageRow({shelter:"", item:"", qty:0, unit:""}));
   dirty = true;

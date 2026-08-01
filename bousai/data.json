@@ -18,11 +18,11 @@
       "shortages": [ { "item": "生理用品", "qty": 40, "unit": "パック" } ] }
   ],
   "supplies": [
-    { "name": "飲料水", "unit": "本(500ml)", "required": 21100, "stock": 13500, "incoming": 5000 },
-    { "name": "食料", "unit": "食", "required": 21100, "stock": 11800, "incoming": 7500 },
-    { "name": "毛布", "unit": "枚", "required": 2800, "stock": 2600, "incoming": 500 },
-    { "name": "簡易トイレ", "unit": "基", "required": 120, "stock": 64, "incoming": 25 },
-    { "name": "衛生用品セット", "unit": "組", "required": 2400, "stock": 1800, "incoming": 800 },
+    { "name": "飲料水", "unit": "本(500ml)", "perPerson": 6, "required": 14046, "stock": 9500, "incoming": 3000 },
+    { "name": "食料", "unit": "食", "perPerson": 3, "required": 7023, "stock": 5200, "incoming": 1500 },
+    { "name": "毛布", "unit": "枚", "perPerson": 1, "required": 2341, "stock": 2600, "incoming": 500 },
+    { "name": "簡易トイレ", "unit": "基", "perPerson": 0.02, "required": 47, "stock": 30, "incoming": 10 },
+    { "name": "衛生用品セット", "unit": "組", "perPerson": 1, "required": 2341, "stock": 1800, "incoming": 800 },
     { "name": "乳幼児用ミルク", "unit": "缶", "required": 200, "stock": 90, "incoming": 40 },
     { "name": "おむつ", "unit": "枚", "required": 5400, "stock": 3300, "incoming": 1500 },
     { "name": "生理用品", "unit": "パック", "required": 950, "stock": 860, "incoming": 250 }
