@@ -1,0 +1,399 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="robots" content="noindex">
+<title>管理者画面 ─ 避難所・物資 状況入力</title>
+<style>
+:root{
+  color-scheme: light;
+  --surface-1:#fcfcfb; --page:#f9f9f7;
+  --text-primary:#0b0b0b; --text-secondary:#52514e; --text-muted:#898781;
+  --grid:#e1e0d9; --border:rgba(11,11,11,.10);
+  --accent:#2a78d6;
+  --status-warning:#fab219; --status-critical:#d03b3b; --status-good:#0ca30c;
+  --good-text:#006300;
+}
+@media (prefers-color-scheme: dark){
+  :root{
+    color-scheme: dark;
+    --surface-1:#1a1a19; --page:#0d0d0d;
+    --text-primary:#ffffff; --text-secondary:#c3c2b7; --text-muted:#898781;
+    --grid:#2c2c2a; --border:rgba(255,255,255,.10);
+    --accent:#3987e5;
+    --good-text:#0ca30c;
+  }
+}
+*{box-sizing:border-box;margin:0;padding:0}
+body{
+  font-family:system-ui,-apple-system,"Segoe UI","Hiragino Kaku Gothic ProN","Yu Gothic",Meiryo,sans-serif;
+  background:var(--page); color:var(--text-primary); line-height:1.5; padding:0 0 120px;
+}
+header{padding:22px 20px 4px; max-width:1080px; margin:0 auto}
+header h1{font-size:1.25rem; font-weight:700}
+header .sub{font-size:.8rem; color:var(--text-secondary); margin-top:4px}
+header a{color:var(--text-secondary)}
+.container{max-width:1080px; margin:14px auto 0; padding:0 20px}
+.card{background:var(--surface-1); border:1px solid var(--border); border-radius:12px; padding:16px 18px 18px; margin-bottom:14px}
+.card h2{font-size:.95rem; font-weight:700; margin-bottom:4px}
+.card .desc{font-size:.74rem; color:var(--text-secondary); margin-bottom:12px}
+label{font-size:.76rem; font-weight:700; color:var(--text-secondary)}
+input,select{
+  font:inherit; font-size:.82rem; color:var(--text-primary);
+  background:var(--page); border:1px solid var(--border); border-radius:8px; padding:7px 10px;
+  width:100%;
+}
+input:focus{outline:2px solid var(--accent); outline-offset:-1px}
+input[type="number"]{text-align:right; font-variant-numeric:tabular-nums}
+.tokenrow{display:flex; gap:10px; align-items:end; flex-wrap:wrap}
+.tokenrow .grow{flex:1; min-width:240px}
+.check{display:flex; align-items:center; gap:6px; font-size:.74rem; color:var(--text-secondary); margin-top:8px}
+.check input{width:auto}
+button{
+  font:inherit; font-size:.8rem; font-weight:700; cursor:pointer;
+  border:1px solid var(--border); border-radius:8px; padding:8px 14px;
+  background:var(--surface-1); color:var(--text-primary);
+}
+button:hover{background:var(--page)}
+button.primary{background:var(--accent); border-color:var(--accent); color:#fff}
+button.primary:hover{opacity:.9}
+button.danger{color:var(--status-critical)}
+button.small{font-size:.72rem; padding:4px 10px}
+button:disabled{opacity:.45; cursor:not-allowed}
+
+table{width:100%; border-collapse:collapse; font-size:.78rem}
+th,td{padding:5px 6px; border-bottom:1px solid var(--grid); text-align:left; vertical-align:middle}
+th{color:var(--text-secondary); font-size:.68rem; white-space:nowrap}
+td.num{width:7.5em}
+td.act{width:4.5em; text-align:center; white-space:nowrap}
+.addrow{margin-top:10px}
+.tablewrap{overflow-x:auto}
+.tablewrap table{min-width:560px}
+
+.savebar{
+  position:fixed; bottom:0; left:0; right:0; z-index:40;
+  background:var(--surface-1); border-top:1px solid var(--border);
+  padding:12px 20px;
+}
+.savebar .inner{max-width:1080px; margin:0 auto; display:flex; gap:12px; align-items:center; flex-wrap:wrap}
+#status{font-size:.76rem; color:var(--text-secondary); flex:1; min-width:200px}
+#status.ok{color:var(--good-text); font-weight:700}
+#status.err{color:var(--status-critical); font-weight:700}
+.summary{font-size:.74rem; color:var(--text-muted)}
+.notice{background:var(--page); border:1px solid var(--border); border-radius:8px;
+  padding:8px 12px; font-size:.72rem; color:var(--text-secondary); margin-top:10px; line-height:1.7}
+</style>
+</head>
+<body>
+
+<header>
+  <h1>管理者画面 ─ 避難所・物資 状況入力</h1>
+  <p class="sub">保存すると<a href="index.html">市民向けページ</a>に反映されます（反映まで1〜2分かかることがあります）</p>
+</header>
+
+<div class="container">
+
+  <section class="card">
+    <h2>接続設定</h2>
+    <p class="desc">保存には GitHub のアクセストークン（このリポジトリの Contents: Read and write 権限）が必要です。トークンは GitHub にのみ送信され、他のサーバーには送られません。</p>
+    <div class="tokenrow">
+      <div class="grow">
+        <label for="token">アクセストークン</label>
+        <input type="password" id="token" placeholder="github_pat_..." autocomplete="off">
+      </div>
+      <button id="loadBtn">最新データを読み込む</button>
+    </div>
+    <div class="check">
+      <input type="checkbox" id="saveToken" checked>
+      <label for="saveToken" style="font-weight:400">この端末にトークンを保存する（共用端末では外してください）</label>
+    </div>
+    <div class="notice" id="repoInfo"></div>
+  </section>
+
+  <section class="card">
+    <h2>避難所の受入状況</h2>
+    <p class="desc">避難所ごとの受入可能数（定員）と現在の避難者数を入力してください。行の追加・削除もできます。</p>
+    <div class="tablewrap">
+      <table>
+        <thead><tr><th>避難所名</th><th>地区</th><th style="text-align:right">受入可能数（人）</th><th style="text-align:right">避難者数（人）</th><th></th></tr></thead>
+        <tbody id="shelterBody"></tbody>
+      </table>
+    </div>
+    <button class="small addrow" id="addShelter">＋ 避難所を追加</button>
+  </section>
+
+  <section class="card">
+    <h2>物資の調達状況</h2>
+    <p class="desc">品目ごとの必要量・在庫・調達手配中の量を入力してください。</p>
+    <div class="tablewrap">
+      <table>
+        <thead><tr><th>品目名</th><th>単位</th><th style="text-align:right">必要量</th><th style="text-align:right">在庫</th><th style="text-align:right">調達手配中</th><th></th></tr></thead>
+        <tbody id="supplyBody"></tbody>
+      </table>
+    </div>
+    <button class="small addrow" id="addSupply">＋ 品目を追加</button>
+  </section>
+
+  <section class="card">
+    <h2>避難者数の推移</h2>
+    <p class="desc">推移は自動で記録されます。保存すると、その日の地区別合計が推移グラフに追記されます（同じ日に複数回保存した場合は上書き）。手入力は不要です。</p>
+    <div class="summary" id="trendSummary"></div>
+  </section>
+
+</div>
+
+<div class="savebar">
+  <div class="inner">
+    <span id="status">トークンを入力して「最新データを読み込む」を押してください</span>
+    <button class="primary" id="saveBtn" disabled>保存して公開</button>
+  </div>
+</div>
+
+<script>
+"use strict";
+/* ============================================================
+   設定 ── リポジトリを移す場合はここを変更
+   ============================================================ */
+const OWNER  = "Akiyoshi-Sawada";
+const REPO   = "soccer-manual";
+const BRANCH = "main";
+const PATH   = "bousai/data.json";
+const API    = `https://api.github.com/repos/${OWNER}/${REPO}/contents/${encodeURIComponent(PATH)}`;
+
+document.getElementById("repoInfo").textContent =
+  `保存先: github.com/${OWNER}/${REPO} の ${BRANCH} ブランチ（${PATH}）。` +
+  "トークンは GitHub → Settings → Developer settings → Fine-grained personal access tokens で、このリポジトリのみ・Contents: Read and write 権限で作成してください。";
+
+let data = null;          // 読み込んだ data.json
+let fileSha = null;       // 上書き保存に必要な現在ファイルのSHA
+let dirty = false;
+
+const $ = id => document.getElementById(id);
+const status = $("status");
+function setStatus(msg, cls){ status.textContent = msg; status.className = cls || ""; }
+
+/* ---------- トークン ---------- */
+const tokenInput = $("token");
+const saved = localStorage.getItem("bousai_token");
+if (saved) tokenInput.value = saved;
+function currentToken(){ return tokenInput.value.trim(); }
+function persistToken(){
+  if ($("saveToken").checked && currentToken()) localStorage.setItem("bousai_token", currentToken());
+  else localStorage.removeItem("bousai_token");
+}
+$("saveToken").addEventListener("change", persistToken);
+
+/* ---------- GitHub API ---------- */
+function ghHeaders(){
+  return {
+    "Authorization": "Bearer " + currentToken(),
+    "Accept": "application/vnd.github+json",
+    "X-GitHub-Api-Version": "2022-11-28"
+  };
+}
+// UTF-8 → base64
+const b64encode = s => btoa(String.fromCharCode(...new TextEncoder().encode(s)));
+const b64decode = s => new TextDecoder().decode(Uint8Array.from(atob(s), c => c.charCodeAt(0)));
+
+async function fetchLatest(){
+  const res = await fetch(`${API}?ref=${BRANCH}&_=${Date.now()}`, { headers: ghHeaders(), cache:"no-store" });
+  if (res.status === 401) throw new Error("トークンが無効です（401）。権限と有効期限を確認してください");
+  if (res.status === 404) throw new Error(`ファイルが見つかりません（404）。${BRANCH} ブランチに ${PATH} があるか、トークンにこのリポジトリへのアクセス権があるか確認してください`);
+  if (!res.ok) throw new Error("読み込みに失敗しました（HTTP " + res.status + "）");
+  const json = await res.json();
+  fileSha = json.sha;
+  return JSON.parse(b64decode(json.content.replace(/\n/g, "")));
+}
+
+async function saveToGitHub(body, message){
+  const payload = { message, content: b64encode(body), branch: BRANCH, sha: fileSha };
+  let res = await fetch(API, { method:"PUT", headers: ghHeaders(), body: JSON.stringify(payload) });
+  if (res.status === 409 || res.status === 422){
+    // 他の管理者が先に保存した場合：最新SHAを取り直して1回だけ再試行
+    await fetchLatest();
+    payload.sha = fileSha;
+    res = await fetch(API, { method:"PUT", headers: ghHeaders(), body: JSON.stringify(payload) });
+  }
+  if (res.status === 401) throw new Error("トークンが無効です（401）");
+  if (res.status === 403) throw new Error("書き込み権限がありません（403）。トークンの Contents 権限を Read and write にしてください");
+  if (!res.ok) throw new Error("保存に失敗しました（HTTP " + res.status + "）");
+  const json = await res.json();
+  fileSha = json.content.sha;
+}
+
+/* ---------- フォーム描画 ---------- */
+function inputCell(value, opts){
+  const td = document.createElement("td");
+  if (opts.num) td.className = "num";
+  const inp = document.createElement("input");
+  if (opts.num){ inp.type = "number"; inp.min = "0"; inp.step = "1"; }
+  else inp.type = "text";
+  if (opts.placeholder) inp.placeholder = opts.placeholder;
+  inp.value = value;
+  inp.addEventListener("input", () => { dirty = true; });
+  td.appendChild(inp);
+  return { td, inp };
+}
+function delCell(tr){
+  const td = document.createElement("td"); td.className = "act";
+  const btn = document.createElement("button"); btn.className = "small danger"; btn.type = "button";
+  btn.textContent = "削除"; btn.title = "この行を削除";
+  btn.addEventListener("click", () => {
+    if (confirm("この行を削除しますか？")) { tr.remove(); dirty = true; }
+  });
+  td.appendChild(btn);
+  return td;
+}
+
+function shelterRow(s){
+  const tr = document.createElement("tr");
+  const name = inputCell(s.name, {placeholder:"避難所名"});
+  const district = inputCell(s.district, {placeholder:"地区名"});
+  const cap = inputCell(s.capacity, {num:true});
+  const occ = inputCell(s.occupants, {num:true});
+  tr.append(name.td, district.td, cap.td, occ.td, delCell(tr));
+  tr._get = () => ({
+    name: name.inp.value.trim(),
+    district: district.inp.value.trim() || "未分類",
+    capacity: Math.max(0, Math.round(Number(cap.inp.value) || 0)),
+    occupants: Math.max(0, Math.round(Number(occ.inp.value) || 0))
+  });
+  return tr;
+}
+function supplyRow(s){
+  const tr = document.createElement("tr");
+  const name = inputCell(s.name, {placeholder:"品目名"});
+  const unit = inputCell(s.unit, {placeholder:"個・枚 など"});
+  const req = inputCell(s.required, {num:true});
+  const stock = inputCell(s.stock, {num:true});
+  const inc = inputCell(s.incoming, {num:true});
+  tr.append(name.td, unit.td, req.td, stock.td, inc.td, delCell(tr));
+  tr._get = () => ({
+    name: name.inp.value.trim(),
+    unit: unit.inp.value.trim(),
+    required: Math.max(0, Math.round(Number(req.inp.value) || 0)),
+    stock: Math.max(0, Math.round(Number(stock.inp.value) || 0)),
+    incoming: Math.max(0, Math.round(Number(inc.inp.value) || 0))
+  });
+  return tr;
+}
+
+function renderForms(){
+  const sb = $("shelterBody"); sb.textContent = "";
+  data.shelters.forEach(s => sb.appendChild(shelterRow(s)));
+  const pb = $("supplyBody"); pb.textContent = "";
+  data.supplies.forEach(s => pb.appendChild(supplyRow(s)));
+  const t = data.trend || {dates:[], byDistrict:{}};
+  $("trendSummary").textContent = t.dates.length
+    ? `記録済み: ${t.dates[0]} 〜 ${t.dates[t.dates.length-1]}（${t.dates.length}日分・${Object.keys(t.byDistrict).length}地区）`
+    : "まだ記録がありません。最初の保存時から記録が始まります。";
+  $("saveBtn").disabled = false;
+}
+
+$("addShelter").addEventListener("click", () => {
+  $("shelterBody").appendChild(shelterRow({name:"", district:"", capacity:0, occupants:0}));
+  dirty = true;
+});
+$("addSupply").addEventListener("click", () => {
+  $("supplyBody").appendChild(supplyRow({name:"", unit:"", required:0, stock:0, incoming:0}));
+  dirty = true;
+});
+
+/* ---------- 収集・検証・推移追記 ---------- */
+function jstNow(){
+  const p = new Intl.DateTimeFormat("ja-JP", {timeZone:"Asia/Tokyo",
+    year:"numeric", month:"2-digit", day:"2-digit", hour:"2-digit", minute:"2-digit", hour12:false})
+    .formatToParts(new Date()).reduce((a,x) => (a[x.type]=x.value, a), {});
+  return {
+    stamp: `${p.year}-${p.month}-${p.day} ${p.hour}:${p.minute} 更新`,
+    dateLabel: `${Number(p.month)}/${Number(p.day)}`
+  };
+}
+
+function collect(){
+  const shelters = [...$("shelterBody").children].map(tr => tr._get())
+    .filter(s => s.name);
+  const supplies = [...$("supplyBody").children].map(tr => tr._get())
+    .filter(s => s.name);
+  if (!shelters.length) throw new Error("避難所が1件も入力されていません");
+  const badSupply = supplies.find(s => s.required <= 0);
+  if (badSupply) throw new Error(`「${badSupply.name}」の必要量を1以上にしてください`);
+
+  const now = jstNow();
+
+  // 推移: 今日の地区別合計を追記（同日なら上書き）。既存の履歴は保持
+  const trend = data.trend && Array.isArray(data.trend.dates)
+    ? { dates:[...data.trend.dates], byDistrict:Object.fromEntries(
+        Object.entries(data.trend.byDistrict).map(([k,v]) => [k, [...v]])) }
+    : { dates:[], byDistrict:{} };
+  const totals = {};
+  shelters.forEach(s => { totals[s.district] = (totals[s.district] || 0) + s.occupants; });
+  const allDistricts = new Set([...Object.keys(trend.byDistrict), ...Object.keys(totals)]);
+  const lastIdx = trend.dates.length - 1;
+  const sameDay = lastIdx >= 0 && trend.dates[lastIdx] === now.dateLabel;
+  if (!sameDay) trend.dates.push(now.dateLabel);
+  allDistricts.forEach(d => {
+    if (!trend.byDistrict[d]) trend.byDistrict[d] = new Array(trend.dates.length - 1).fill(0);
+    const arr = trend.byDistrict[d];
+    const v = totals[d] || 0;
+    if (sameDay) arr[lastIdx] = v; else arr.push(v);
+    // 配列長がずれた場合は0で揃える（過去データの欠損対策）
+    while (arr.length < trend.dates.length) arr.splice(arr.length - 1, 0, 0);
+  });
+  // 直近60日分だけ保持
+  const KEEP = 60;
+  if (trend.dates.length > KEEP){
+    const cut = trend.dates.length - KEEP;
+    trend.dates.splice(0, cut);
+    Object.values(trend.byDistrict).forEach(arr => arr.splice(0, cut));
+  }
+
+  return { updatedAt: now.stamp, shelters, supplies, trend };
+}
+
+/* ---------- 読み込み・保存 ---------- */
+$("loadBtn").addEventListener("click", async () => {
+  if (!currentToken()){ setStatus("トークンを入力してください", "err"); return; }
+  if (dirty && !confirm("未保存の変更があります。破棄して最新データを読み込みますか？")) return;
+  persistToken();
+  setStatus("読み込み中…");
+  try {
+    data = await fetchLatest();
+    renderForms();
+    dirty = false;
+    setStatus(`読み込みました（${data.updatedAt || "更新日時なし"}）`, "ok");
+  } catch (e) {
+    setStatus(e.message, "err");
+  }
+});
+
+$("saveBtn").addEventListener("click", async () => {
+  if (!currentToken()){ setStatus("トークンを入力してください", "err"); return; }
+  persistToken();
+  let next;
+  try { next = collect(); }
+  catch (e) { setStatus(e.message, "err"); return; }
+  if (!confirm("入力内容を保存して市民向けページに公開します。よろしいですか？")) return;
+  $("saveBtn").disabled = true;
+  setStatus("保存中…");
+  try {
+    const body = JSON.stringify(next, null, 2) + "\n";
+    await saveToGitHub(body, `状況更新 ${next.updatedAt}`);
+    data = next;
+    renderForms();
+    dirty = false;
+    setStatus(`保存しました（${next.updatedAt}）。市民向けページには1〜2分で反映されます`, "ok");
+  } catch (e) {
+    setStatus(e.message, "err");
+  } finally {
+    $("saveBtn").disabled = false;
+  }
+});
+
+addEventListener("beforeunload", e => {
+  if (dirty){ e.preventDefault(); e.returnValue = ""; }
+});
+</script>
+</body>
+</html>

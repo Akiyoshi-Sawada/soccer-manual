@@ -1,0 +1,37 @@
+{
+  "updatedAt": "2026-08-01 09:00 更新",
+  "sample": true,
+  "shelters": [
+    { "name": "中央小学校", "district": "中央地区", "capacity": 450, "occupants": 512 },
+    { "name": "中央公民館", "district": "中央地区", "capacity": 200, "occupants": 168 },
+    { "name": "第二中学校", "district": "中央地区", "capacity": 600, "occupants": 430 },
+    { "name": "港小学校", "district": "港地区", "capacity": 380, "occupants": 395 },
+    { "name": "港スポーツセンター", "district": "港地区", "capacity": 800, "occupants": 610 },
+    { "name": "港南会館", "district": "港地区", "capacity": 150, "occupants": 88 },
+    { "name": "山手小学校", "district": "山手地区", "capacity": 400, "occupants": 210 },
+    { "name": "山手台高校", "district": "山手地区", "capacity": 550, "occupants": 275 },
+    { "name": "山手コミュニティセンター", "district": "山手地区", "capacity": 120, "occupants": 118 },
+    { "name": "川北中学校", "district": "川北地区", "capacity": 500, "occupants": 465 },
+    { "name": "川北会館", "district": "川北地区", "capacity": 180, "occupants": 95 },
+    { "name": "川北体育館", "district": "川北地区", "capacity": 700, "occupants": 380 }
+  ],
+  "supplies": [
+    { "name": "飲料水", "unit": "本(500ml)", "required": 33800, "stock": 21500, "incoming": 8000 },
+    { "name": "食料", "unit": "食", "required": 33800, "stock": 18200, "incoming": 12000 },
+    { "name": "毛布", "unit": "枚", "required": 4500, "stock": 4100, "incoming": 800 },
+    { "name": "簡易トイレ", "unit": "基", "required": 190, "stock": 96, "incoming": 40 },
+    { "name": "衛生用品セット", "unit": "組", "required": 3800, "stock": 2900, "incoming": 1200 },
+    { "name": "乳幼児用ミルク", "unit": "缶", "required": 320, "stock": 140, "incoming": 60 },
+    { "name": "おむつ", "unit": "枚", "required": 8600, "stock": 5200, "incoming": 2400 },
+    { "name": "生理用品", "unit": "パック", "required": 1500, "stock": 1350, "incoming": 400 }
+  ],
+  "trend": {
+    "dates": ["7/26", "7/27", "7/28", "7/29", "7/30", "7/31", "8/1"],
+    "byDistrict": {
+      "中央地区": [420, 780, 950, 1080, 1120, 1110, 1110],
+      "港地区": [350, 640, 830, 980, 1050, 1090, 1093],
+      "山手地区": [180, 360, 480, 560, 590, 600, 603],
+      "川北地区": [300, 520, 700, 820, 890, 930, 940]
+    }
+  }
+}
