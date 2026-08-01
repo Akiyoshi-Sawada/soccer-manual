@@ -115,6 +115,7 @@ header .sub{font-size:.8rem; color:var(--text-secondary); margin-top:4px}
 .shortitems{display:flex; gap:6px; flex-wrap:wrap}
 .shortitem{font-size:.72rem; color:var(--status-critical); font-weight:700;
   border:1px solid var(--status-critical); border-radius:99px; padding:1px 10px}
+.shortitem.more{color:var(--text-muted); border-color:var(--border)}
 @media (max-width:640px){
   .shortrow{grid-template-columns:1fr; gap:2px}
   .shortrow .name{text-align:left}
@@ -225,7 +226,7 @@ footer a{color:var(--text-secondary)}
   <section class="card">
     <div class="card-head">
       <h2>避難所ごとの不足物資</h2>
-      <span class="desc">各避難所から報告されている、いま足りていない物資</span>
+      <span class="desc">各避難所の在庫と必要量/日（避難者数×1人1日あたり）から自動判定。不足数の多い順</span>
     </div>
     <div class="rows" id="shortageList"></div>
   </section>
@@ -319,6 +320,27 @@ const pct = r => Math.round(r * 100);
 const totalOccupantsAll = () => DATA.shelters.reduce((a,s) => a + s.occupants, 0);
 function effectiveRequired(s){
   return s.perPerson > 0 ? Math.ceil(totalOccupantsAll() * s.perPerson) : (s.required || 0);
+}
+// 市全体の在庫 = 本部在庫 + 各避難所の在庫合計
+function cityStock(it){
+  return (it.stock || 0) + DATA.shelters.reduce((a,sh) => a + ((sh.stocks || {})[it.name] || 0), 0);
+}
+// その避難所での必要量/日: perPersonがあれば人数×原単位、なければ市全体必要量を人数比で按分
+function shelterNeed(sh, it, totalOcc){
+  if (it.perPerson > 0) return Math.ceil(sh.occupants * it.perPerson);
+  return totalOcc > 0 ? Math.ceil((it.required || 0) * sh.occupants / totalOcc) : 0;
+}
+// 避難所の不足物資を在庫と必要量から自動判定
+function computedShortages(sh){
+  const totalOcc = totalOccupantsAll();
+  return DATA.supplies
+    .map(it => {
+      const need = shelterNeed(sh, it, totalOcc);
+      const have = (sh.stocks || {})[it.name] || 0;
+      return { name: it.name, unit: it.unit, need, lack: need - have };
+    })
+    .filter(x => x.need > 0 && x.lack > 0)
+    .sort((a,b) => b.lack / b.need - a.lack / a.need);
 }
 
 /* ---------- フィルター ---------- */
@@ -427,45 +449,51 @@ function popupContent(s){
   flag.className = "popup-flag" + (st.crit ? " crit" : "");
   flag.textContent = st.label;
   div.appendChild(flag);
-  const shorts = shortageItems(s);
+  const shorts = computedShortages(s);
   if (shorts.length){
     const r = document.createElement("div"); r.className = "popup-flag crit";
-    r.textContent = "不足物資: " + shorts.join("、");
+    const top = shorts.slice(0, 3).map(x => `${x.name} ${fmt(x.lack)}${x.unit}`);
+    r.textContent = "不足: " + top.join("、") +
+      (shorts.length > 3 ? ` 他${shorts.length - 3}件` : "");
     div.appendChild(r);
   }
   return div;
 }
 
-function shortageItems(s){
-  return (s.shortages || [])
-    .filter(x => x && x.item)
-    .map(x => x.item + (x.qty > 0 ? ` ${fmt(x.qty)}${x.unit || ""}` : ""));
-}
-
-/* ---------- 避難所ごとの不足物資 ---------- */
+/* ---------- 避難所ごとの不足物資（在庫と必要量から自動判定） ---------- */
 function renderShortages(shelters){
   const box = document.getElementById("shortageList");
   box.textContent = "";
-  const withShorts = shelters.filter(s => shortageItems(s).length);
+  const withShorts = shelters
+    .map(s => ({ s, shorts: computedShortages(s) }))
+    .filter(x => x.shorts.length);
   if (!withShorts.length){
     const p = document.createElement("p");
     p.style.cssText = "font-size:.78rem;color:var(--text-muted)";
-    p.textContent = "現在、不足の報告はありません。";
+    p.textContent = "現在、不足はありません。";
     box.appendChild(p);
     return;
   }
-  withShorts.forEach(s => {
+  withShorts.sort((a,b) => b.shorts.length - a.shorts.length);
+  const MAX_TAGS = 8;
+  withShorts.forEach(({s, shorts}) => {
     const row = document.createElement("div"); row.className = "shortrow";
     const name = document.createElement("div"); name.className = "name";
     name.textContent = s.name;
     const small = document.createElement("small"); small.textContent = s.district;
     name.appendChild(small);
     const items = document.createElement("div"); items.className = "shortitems";
-    shortageItems(s).forEach(t => {
+    shorts.slice(0, MAX_TAGS).forEach(x => {
       const tag = document.createElement("span"); tag.className = "shortitem";
-      tag.textContent = t;
+      tag.textContent = `${x.name} ${fmt(x.lack)}${x.unit}`;
+      tag.title = `必要量/日 ${fmt(x.need)}${x.unit} に対して ${fmt(x.lack)}${x.unit} 不足`;
       items.appendChild(tag);
     });
+    if (shorts.length > MAX_TAGS){
+      const more = document.createElement("span"); more.className = "shortitem more";
+      more.textContent = `他${shorts.length - MAX_TAGS}件`;
+      items.appendChild(more);
+    }
     row.append(name, items);
     box.appendChild(row);
   });
@@ -511,7 +539,7 @@ function renderKPIs(shelters, supplies){
   const rate = totalCap ? totalOcc / totalCap : 0;
   const over = shelters.filter(s => s.occupants > s.capacity).length;
   const validSupplies = supplies.filter(s => effectiveRequired(s) > 0);
-  const short = validSupplies.filter(s => s.stock + s.incoming < effectiveRequired(s)).length;
+  const short = validSupplies.filter(s => cityStock(s) + s.incoming < effectiveRequired(s)).length;
 
   function tile({label, value, unit, hero, note, noteCrit, meter}){
     const t = document.createElement("div"); t.className = "tile";
@@ -634,7 +662,7 @@ function renderSupplies(allSupplies){
   const box = document.getElementById("supplyChart");
   box.textContent = "";
   const supplies = allSupplies
-    .map(s => ({ ...s, req: effectiveRequired(s) }))
+    .map(s => ({ ...s, req: effectiveRequired(s), cstock: cityStock(s) }))
     .filter(s => s.req > 0);
   if (!supplies.length){
     const p = document.createElement("p");
@@ -645,13 +673,13 @@ function renderSupplies(allSupplies){
     return;
   }
   const sorted = [...supplies].sort((a,b) =>
-    (a.stock + a.incoming)/a.req - (b.stock + b.incoming)/b.req);
-  const maxRatio = Math.max(1, ...sorted.map(s => (s.stock+s.incoming)/s.req));
+    (a.cstock + a.incoming)/a.req - (b.cstock + b.incoming)/b.req);
+  const maxRatio = Math.max(1, ...sorted.map(s => (s.cstock+s.incoming)/s.req));
   const scaleMax = maxRatio * 1.34;  // ラベル余白
   const refPos = 1/scaleMax*100;
 
   sorted.forEach((s, idx) => {
-    const total = s.stock + s.incoming;
+    const total = s.cstock + s.incoming;
     const ratio = total / s.req;
     const row = document.createElement("div"); row.className = "row";
 
@@ -669,7 +697,7 @@ function renderSupplies(allSupplies){
     const fillwrap = document.createElement("div"); fillwrap.className = "fillwrap";
     fillwrap.style.left = 0; fillwrap.style.width = (ratio/scaleMax*100) + "%";
     const seg1 = document.createElement("div"); seg1.className = "seg s1";
-    seg1.style.width = total ? (s.stock/total*100) + "%" : "0%";
+    seg1.style.width = total ? (s.cstock/total*100) + "%" : "0%";
     const seg2 = document.createElement("div"); seg2.className = "seg s2";
     seg2.style.flex = "1";
     fillwrap.append(seg1, seg2);
@@ -699,7 +727,8 @@ function renderSupplies(allSupplies){
       tipTitle(el, s.perPerson > 0
         ? `${s.name}（必要量/日 ${fmt(s.req)}${s.unit} ＝ 避難者${fmt(totalOccupantsAll())}人 × 1人 ${s.perPerson}${s.unit}）`
         : `${s.name}（必要量 ${fmt(s.req)}${s.unit}）`);
-      tipRow(el, cssVar("--series-1"), `${fmt(s.stock)}${s.unit}`, "在庫");
+      tipRow(el, cssVar("--series-1"), `${fmt(s.cstock)}${s.unit}`, "在庫（本部＋避難所）");
+      tipRow(el, null, `${fmt(s.stock || 0)}${s.unit}`, "うち本部・倉庫");
       tipRow(el, cssVar("--series-1-light"), `${fmt(s.incoming)}${s.unit}`, "調達手配中");
       tipRow(el, null, `${pct(ratio)}%`, "充足率（手配分含む）");
       if (ratio < 1) tipRow(el, null, `${fmt(s.req-total)}${s.unit}`, "不足");
@@ -711,12 +740,12 @@ function renderSupplies(allSupplies){
   const tb = document.getElementById("supplyTable");
   tb.textContent = "";
   const table = document.createElement("table");
-  table.innerHTML = "<thead><tr><th>品目</th><th>1人1日あたり</th><th>必要量/日</th><th>在庫</th><th>調達手配中</th><th>充足率</th><th>過不足</th></tr></thead>";
+  table.innerHTML = "<thead><tr><th>品目</th><th>1人1日あたり</th><th>必要量/日</th><th>在庫(本部+避難所)</th><th>調達手配中</th><th>充足率</th><th>過不足</th></tr></thead>";
   const body = document.createElement("tbody");
   sorted.forEach(s => {
-    const total = s.stock + s.incoming;
+    const total = s.cstock + s.incoming;
     const tr = document.createElement("tr");
-    [`${s.name}（${s.unit}）`, s.perPerson > 0 ? String(s.perPerson) : "手入力", fmt(s.req), fmt(s.stock), fmt(s.incoming), pct(total/s.req)+"%"]
+    [`${s.name}（${s.unit}）`, s.perPerson > 0 ? String(s.perPerson) : "手入力", fmt(s.req), fmt(s.cstock), fmt(s.incoming), pct(total/s.req)+"%"]
       .forEach(c => { const td = document.createElement("td"); td.textContent = c; tr.appendChild(td); });
     const td = document.createElement("td");
     const span = document.createElement("span");
