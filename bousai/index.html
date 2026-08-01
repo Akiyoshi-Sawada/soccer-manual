@@ -5,6 +5,8 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <meta name="description" content="地震被災地の避難所の受入可能数・避難者数と、物資の調達状況を公開するページ。データは管理者画面から随時更新されます。">
 <title>避難所・物資 状況ダッシュボード</title>
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" defer></script>
 <style>
 :root{
   color-scheme: light;
@@ -106,6 +108,24 @@ header .sub{font-size:.8rem; color:var(--text-secondary); margin-top:4px}
 .refline{position:absolute; top:0; bottom:0; width:1px; background:var(--axis)}
 .refcap{position:absolute; top:-14px; transform:translateX(-50%); font-size:.62rem; color:var(--text-muted); white-space:nowrap}
 
+/* 地図 */
+#map{height:420px; border-radius:10px; overflow:hidden; background:var(--page)}
+@media (max-width:640px){ #map{height:320px} }
+.leaflet-popup-content{margin:12px 14px; line-height:1.5}
+.popup-title{font-weight:700; font-size:.84rem; margin-bottom:2px}
+.popup-district{font-size:.7rem; color:var(--text-muted); margin-bottom:6px}
+.popup-row{font-size:.76rem; color:var(--text-secondary)}
+.popup-row b{color:var(--text-primary); font-weight:600}
+.popup-flag{font-size:.76rem; font-weight:700; margin-top:4px}
+.popup-flag.crit{color:var(--status-critical)}
+.maplegend{display:flex; gap:14px; font-size:.72rem; color:var(--text-secondary); margin-top:10px; flex-wrap:wrap}
+.maplegend .key{display:inline-flex; align-items:center; gap:6px}
+.dot{width:11px; height:11px; border-radius:50%; display:inline-block; border:2px solid var(--surface-1); box-shadow:0 0 0 1px var(--border)}
+@media (prefers-color-scheme: dark){
+  #map .leaflet-tile{filter:brightness(.75) contrast(1.05)}
+  .leaflet-popup-content-wrapper,.leaflet-popup-tip{background:var(--surface-1); color:var(--text-primary)}
+}
+
 /* 折れ線チャート */
 .linewrap{position:relative}
 svg text{font-family:inherit}
@@ -159,6 +179,20 @@ footer a{color:var(--text-secondary)}
   </div>
 
   <div class="kpis" id="kpis"></div>
+
+  <section class="card" id="mapCard">
+    <div class="card-head">
+      <h2>避難所マップ</h2>
+      <span class="desc">マーカーを選択すると、その避難所の受入状況が表示されます</span>
+    </div>
+    <div id="map"></div>
+    <div class="maplegend">
+      <span class="key"><span class="dot" style="background:var(--series-1)"></span>受入可</span>
+      <span class="key"><span class="dot" style="background:var(--status-warning)"></span>⚠ 逼迫（90%以上）</span>
+      <span class="key"><span class="dot" style="background:var(--status-critical)"></span>⛔ 定員超過</span>
+      <span class="key"><span class="dot" style="background:var(--text-muted)"></span>データ入力待ち</span>
+    </div>
+  </section>
 
   <section class="card">
     <div class="card-head">
@@ -324,6 +358,78 @@ function attachTip(el, build){
 }
 
 const cssVar = name => getComputedStyle(document.documentElement).getPropertyValue(name).trim();
+
+/* ---------- 地図（Leaflet） ---------- */
+let map = null, markerLayer = null;
+
+function shelterStatus(s){
+  if (!s.capacity) return { color: cssVar("--text-muted"), label: "データ入力待ち", crit: false };
+  const r = s.occupants / s.capacity;
+  if (r > 1)    return { color: cssVar("--status-critical"), label: "⛔ 定員超過", crit: true };
+  if (r >= 0.9) return { color: cssVar("--status-warning"),  label: "⚠ 逼迫",     crit: false };
+  return { color: cssVar("--series-1"), label: "受入可", crit: false };
+}
+
+function popupContent(s){
+  const div = document.createElement("div");
+  const title = document.createElement("div"); title.className = "popup-title"; title.textContent = s.name;
+  const district = document.createElement("div"); district.className = "popup-district"; district.textContent = s.district;
+  div.append(title, district);
+  const row = (label, value) => {
+    const r = document.createElement("div"); r.className = "popup-row";
+    const b = document.createElement("b"); b.textContent = value;
+    r.appendChild(b);
+    r.appendChild(document.createTextNode(" " + label));
+    div.appendChild(r);
+  };
+  if (s.capacity){
+    const ratio = s.occupants / s.capacity;
+    row("避難者数", fmt(s.occupants) + "人");
+    row("受入可能数", fmt(s.capacity) + "人");
+    row("稼働率", pct(ratio) + "%");
+    const rem = s.capacity - s.occupants;
+    row("受入余力", rem >= 0 ? `あと${fmt(rem)}人` : `${fmt(-rem)}人超過`);
+  } else {
+    const r = document.createElement("div"); r.className = "popup-row";
+    r.textContent = "人数は未入力です";
+    div.appendChild(r);
+  }
+  const st = shelterStatus(s);
+  const flag = document.createElement("div");
+  flag.className = "popup-flag" + (st.crit ? " crit" : "");
+  flag.textContent = st.label;
+  div.appendChild(flag);
+  return div;
+}
+
+function renderMap(shelters){
+  const card = document.getElementById("mapCard");
+  if (typeof L === "undefined"){ card.classList.add("hidden"); return; }
+  const located = shelters.filter(s => typeof s.lat === "number" && typeof s.lng === "number");
+  if (!located.length){ card.classList.add("hidden"); return; }
+  card.classList.remove("hidden");
+
+  if (!map){
+    map = L.map("map", { scrollWheelZoom: false });
+    L.tileLayer("https://tile.openstreetmap.org/{z}/{x}/{y}.png", {
+      maxZoom: 18,
+      attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
+    }).addTo(map);
+  }
+  if (markerLayer) markerLayer.remove();
+  markerLayer = L.layerGroup().addTo(map);
+
+  located.forEach(s => {
+    const st = shelterStatus(s);
+    L.circleMarker([s.lat, s.lng], {
+      radius: 9, color: cssVar("--surface-1"), weight: 2,
+      fillColor: st.color, fillOpacity: 1
+    }).bindPopup(popupContent(s), { maxWidth: 240 })
+      .bindTooltip(s.name, { direction: "top", offset: [0, -8] })
+      .addTo(markerLayer);
+  });
+  map.fitBounds(L.latLngBounds(located.map(s => [s.lat, s.lng])).pad(0.18));
+}
 
 /* ---------- KPI ---------- */
 function renderKPIs(shelters, supplies){
@@ -681,6 +787,7 @@ function renderAll(){
     : DATA.shelters;
   // 物資は地区別データを持たないため常に全体
   renderKPIs(shelters, DATA.supplies);
+  renderMap(shelters);
   renderShelters(shelters);
   renderSupplies(DATA.supplies);
   renderTrend();
@@ -707,6 +814,8 @@ async function loadData(){
 loadData();
 // 5分ごとに最新データを再取得（表示中の絞り込みは維持）
 setInterval(loadData, 5 * 60 * 1000);
+// Leaflet は defer 読み込みのため、ロード完了後に地図を描き直す
+addEventListener("load", () => renderAll());
 
 let resizeTimer, lastW = innerWidth;
 addEventListener("resize", () => {

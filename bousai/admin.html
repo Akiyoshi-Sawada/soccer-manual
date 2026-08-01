@@ -69,7 +69,7 @@ td.num{width:7.5em}
 td.act{width:4.5em; text-align:center; white-space:nowrap}
 .addrow{margin-top:10px}
 .tablewrap{overflow-x:auto}
-.tablewrap table{min-width:560px}
+.tablewrap table{min-width:720px}
 
 .savebar{
   position:fixed; bottom:0; left:0; right:0; z-index:40;
@@ -113,10 +113,10 @@ td.act{width:4.5em; text-align:center; white-space:nowrap}
 
   <section class="card">
     <h2>避難所の受入状況</h2>
-    <p class="desc">避難所ごとの受入可能数（定員）と現在の避難者数を入力してください。行の追加・削除もできます。</p>
+    <p class="desc">避難所ごとの受入可能数（定員）と現在の避難者数を入力してください。行の追加・削除もできます。緯度・経度は地図表示に使います（Googleマップで地点を右クリックすると座標をコピーできます。空欄の避難所は地図に表示されません）。</p>
     <div class="tablewrap">
       <table>
-        <thead><tr><th>避難所名</th><th>地区</th><th style="text-align:right">受入可能数（人）</th><th style="text-align:right">避難者数（人）</th><th></th></tr></thead>
+        <thead><tr><th>避難所名</th><th>地区</th><th style="text-align:right">受入可能数（人）</th><th style="text-align:right">避難者数（人）</th><th style="text-align:right">緯度</th><th style="text-align:right">経度</th><th></th></tr></thead>
         <tbody id="shelterBody"></tbody>
       </table>
     </div>
@@ -252,13 +252,22 @@ function shelterRow(s){
   const district = inputCell(s.district, {placeholder:"地区名"});
   const cap = inputCell(s.capacity, {num:true});
   const occ = inputCell(s.occupants, {num:true});
-  tr.append(name.td, district.td, cap.td, occ.td, delCell(tr));
-  tr._get = () => ({
-    name: name.inp.value.trim(),
-    district: district.inp.value.trim() || "未分類",
-    capacity: Math.max(0, Math.round(Number(cap.inp.value) || 0)),
-    occupants: Math.max(0, Math.round(Number(occ.inp.value) || 0))
-  });
+  const lat = inputCell(s.lat ?? "", {placeholder:"32.6xxx"});
+  const lng = inputCell(s.lng ?? "", {placeholder:"130.6xxx"});
+  lat.td.className = lng.td.className = "num";
+  lat.inp.style.textAlign = lng.inp.style.textAlign = "right";
+  tr.append(name.td, district.td, cap.td, occ.td, lat.td, lng.td, delCell(tr));
+  tr._get = () => {
+    const latV = parseFloat(lat.inp.value), lngV = parseFloat(lng.inp.value);
+    const o = {
+      name: name.inp.value.trim(),
+      district: district.inp.value.trim() || "未分類",
+      capacity: Math.max(0, Math.round(Number(cap.inp.value) || 0)),
+      occupants: Math.max(0, Math.round(Number(occ.inp.value) || 0))
+    };
+    if (Number.isFinite(latV) && Number.isFinite(lngV)){ o.lat = latV; o.lng = lngV; }
+    return o;
+  };
   return tr;
 }
 function supplyRow(s){
@@ -292,7 +301,7 @@ function renderForms(){
 }
 
 $("addShelter").addEventListener("click", () => {
-  $("shelterBody").appendChild(shelterRow({name:"", district:"", capacity:0, occupants:0}));
+  $("shelterBody").appendChild(shelterRow({name:"", district:"", capacity:0, occupants:0, lat:"", lng:""}));
   dirty = true;
 });
 $("addSupply").addEventListener("click", () => {
