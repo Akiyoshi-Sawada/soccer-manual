@@ -124,6 +124,18 @@ td.act{width:4.5em; text-align:center; white-space:nowrap}
   </section>
 
   <section class="card">
+    <h2>避難所ごとの不足物資</h2>
+    <p class="desc">各避難所から報告された「いま足りていない物資」を入力してください。市民向けページの一覧と地図のポップアップに表示されます。解消したら行を削除してください。</p>
+    <div class="tablewrap">
+      <table>
+        <thead><tr><th>避難所</th><th>品目</th><th style="text-align:right">数量</th><th>単位</th><th></th></tr></thead>
+        <tbody id="shortageBody"></tbody>
+      </table>
+    </div>
+    <button class="small addrow" id="addShortage">＋ 不足物資を追加</button>
+  </section>
+
+  <section class="card">
     <h2>物資の調達状況</h2>
     <p class="desc">品目ごとの必要量・在庫・調達手配中の量を入力してください。必要量が0の品目は「入力待ち」扱いとなり、市民向けページには表示されません。</p>
     <div class="tablewrap">
@@ -270,6 +282,45 @@ function shelterRow(s){
   };
   return tr;
 }
+// 現在フォームに入力されている避難所名の一覧
+function currentShelterNames(){
+  return [...$("shelterBody").children].map(tr => tr._get().name).filter(Boolean);
+}
+function shortageRow(e){
+  const tr = document.createElement("tr");
+  const selTd = document.createElement("td");
+  const sel = document.createElement("select");
+  const fill = () => {
+    const prev = sel.value || e.shelter || "";
+    sel.textContent = "";
+    currentShelterNames().forEach(n => {
+      const o = document.createElement("option"); o.value = n; o.textContent = n;
+      sel.appendChild(o);
+    });
+    // 避難所リストに無い名前（改名直後など）も選択肢として残す
+    if (prev && ![...sel.options].some(o => o.value === prev)){
+      const o = document.createElement("option"); o.value = prev; o.textContent = prev;
+      sel.appendChild(o);
+    }
+    if (prev) sel.value = prev;
+  };
+  fill();
+  sel.addEventListener("focus", fill);   // 避難所名の編集を反映
+  sel.addEventListener("change", () => { dirty = true; });
+  selTd.appendChild(sel);
+  const item = inputCell(e.item, {placeholder:"毛布・発電機 など"});
+  const qty = inputCell(e.qty, {num:true});
+  const unit = inputCell(e.unit, {placeholder:"枚・台 など"});
+  tr.append(selTd, item.td, qty.td, unit.td, delCell(tr));
+  tr._get = () => ({
+    shelter: sel.value,
+    item: item.inp.value.trim(),
+    qty: Math.max(0, Math.round(Number(qty.inp.value) || 0)),
+    unit: unit.inp.value.trim()
+  });
+  return tr;
+}
+
 function supplyRow(s){
   const tr = document.createElement("tr");
   const name = inputCell(s.name, {placeholder:"品目名"});
@@ -291,6 +342,9 @@ function supplyRow(s){
 function renderForms(){
   const sb = $("shelterBody"); sb.textContent = "";
   data.shelters.forEach(s => sb.appendChild(shelterRow(s)));
+  const hb = $("shortageBody"); hb.textContent = "";
+  data.shelters.forEach(s => (s.shortages || []).forEach(e =>
+    hb.appendChild(shortageRow({ shelter: s.name, item: e.item, qty: e.qty, unit: e.unit }))));
   const pb = $("supplyBody"); pb.textContent = "";
   data.supplies.forEach(s => pb.appendChild(supplyRow(s)));
   const t = data.trend || {dates:[], byDistrict:{}};
@@ -302,6 +356,10 @@ function renderForms(){
 
 $("addShelter").addEventListener("click", () => {
   $("shelterBody").appendChild(shelterRow({name:"", district:"", capacity:0, occupants:0, lat:"", lng:""}));
+  dirty = true;
+});
+$("addShortage").addEventListener("click", () => {
+  $("shortageBody").appendChild(shortageRow({shelter:"", item:"", qty:0, unit:""}));
   dirty = true;
 });
 $("addSupply").addEventListener("click", () => {
@@ -327,6 +385,16 @@ function collect(){
     .filter(s => s.name);
   if (!shelters.length) throw new Error("避難所が1件も入力されていません");
   // 必要量が0の品目は「入力待ち」として保存を許可（市民向けページには表示されない）
+
+  // 不足物資を該当する避難所に紐づける
+  const byName = Object.fromEntries(shelters.map(s => [s.name, s]));
+  [...$("shortageBody").children].map(tr => tr._get())
+    .filter(e => e.item)
+    .forEach(e => {
+      const target = byName[e.shelter];
+      if (!target) throw new Error(`不足物資「${e.item}」の避難所「${e.shelter || "未選択"}」が避難所一覧にありません`);
+      (target.shortages = target.shortages || []).push({ item: e.item, qty: e.qty, unit: e.unit });
+    });
 
   const now = jstNow();
 
