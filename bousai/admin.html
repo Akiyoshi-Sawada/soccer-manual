@@ -14,6 +14,7 @@
   --accent:#2a78d6;
   --status-warning:#fab219; --status-critical:#d03b3b; --status-good:#0ca30c;
   --good-text:#006300;
+  --zebra:#f4f3ef;
 }
 @media (prefers-color-scheme: dark){
   :root{
@@ -23,33 +24,69 @@
     --grid:#2c2c2a; --border:rgba(255,255,255,.10);
     --accent:#3987e5;
     --good-text:#0ca30c;
+    --zebra:#222221;
   }
 }
 *{box-sizing:border-box;margin:0;padding:0}
 body{
   font-family:system-ui,-apple-system,"Segoe UI","Hiragino Kaku Gothic ProN","Yu Gothic",Meiryo,sans-serif;
-  background:var(--page); color:var(--text-primary); line-height:1.5; padding:0 0 120px;
+  background:var(--page); color:var(--text-primary); line-height:1.5; padding:0 0 90px;
 }
-header{padding:22px 20px 4px; max-width:1080px; margin:0 auto}
-header h1{font-size:1.25rem; font-weight:700}
-header .sub{font-size:.8rem; color:var(--text-secondary); margin-top:4px}
+header{padding:20px 20px 0; max-width:1180px; margin:0 auto;
+  display:flex; align-items:baseline; gap:12px; flex-wrap:wrap}
+header h1{font-size:1.15rem; font-weight:700}
+header .sub{font-size:.76rem; color:var(--text-secondary)}
 header a{color:var(--text-secondary)}
-.container{max-width:1080px; margin:14px auto 0; padding:0 20px}
-.card{background:var(--surface-1); border:1px solid var(--border); border-radius:12px; padding:16px 18px 18px; margin-bottom:14px}
-.card h2{font-size:.95rem; font-weight:700; margin-bottom:4px}
-.card .desc{font-size:.74rem; color:var(--text-secondary); margin-bottom:12px}
+.container{max-width:1180px; margin:0 auto; padding:0 20px}
+
+/* タブ */
+.tabs{display:flex; gap:4px; margin:16px 0 0; border-bottom:1px solid var(--grid); flex-wrap:wrap}
+.tab{font:inherit; font-size:.82rem; font-weight:700; color:var(--text-secondary);
+  background:none; border:none; border-bottom:2px solid transparent;
+  padding:8px 14px; cursor:pointer}
+.tab:hover{color:var(--text-primary)}
+.tab.active{color:var(--accent); border-bottom-color:var(--accent)}
+.tab .cnt{font-weight:400; font-size:.72rem; color:var(--text-muted); margin-left:3px}
+.panel{display:none; padding-top:14px}
+.panel.active{display:block}
+
+.card{background:var(--surface-1); border:1px solid var(--border); border-radius:12px; padding:14px 16px 16px}
+.card .desc{font-size:.74rem; color:var(--text-secondary); margin-bottom:10px; line-height:1.7}
+.card h2{font-size:.9rem; font-weight:700; margin-bottom:4px}
 label{font-size:.76rem; font-weight:700; color:var(--text-secondary)}
-input,select{
-  font:inherit; font-size:.82rem; color:var(--text-primary);
-  background:var(--page); border:1px solid var(--border); border-radius:8px; padding:7px 10px;
-  width:100%;
+
+/* テーブル: 入力欄は枠を消し、ホバー/フォーカスで現す */
+.tablewrap{overflow-x:auto}
+table{width:100%; border-collapse:collapse; font-size:.8rem}
+thead th{position:sticky; top:0; background:var(--surface-1); z-index:2;
+  color:var(--text-muted); font-size:.68rem; font-weight:700; text-align:left;
+  padding:6px 8px; border-bottom:1px solid var(--grid); white-space:nowrap}
+thead th.num{text-align:right}
+tbody td{padding:2px 3px; border-bottom:1px solid var(--grid)}
+tbody tr:nth-child(even){background:var(--zebra)}
+td input, td select{
+  font:inherit; font-size:.8rem; color:var(--text-primary);
+  background:transparent; border:1px solid transparent; border-radius:7px;
+  padding:6px 8px; width:100%;
 }
-input:focus{outline:2px solid var(--accent); outline-offset:-1px}
-input[type="number"]{text-align:right; font-variant-numeric:tabular-nums}
-.tokenrow{display:flex; gap:10px; align-items:end; flex-wrap:wrap}
-.tokenrow .grow{flex:1; min-width:240px}
-.check{display:flex; align-items:center; gap:6px; font-size:.74rem; color:var(--text-secondary); margin-top:8px}
-.check input{width:auto}
+td input:hover, td select:hover{border-color:var(--border)}
+td input:focus, td select:focus{outline:2px solid var(--accent); outline-offset:-1px; background:var(--surface-1)}
+td input[type="number"]{text-align:right; font-variant-numeric:tabular-nums}
+td input:disabled{color:var(--text-secondary); font-weight:600; border-color:transparent}
+td.num{width:7.2em}
+td.geo{width:7em}
+td.stat{width:6.5em; text-align:right; white-space:nowrap}
+td.act{width:3.2em; text-align:center}
+
+/* 状態バッジ */
+.chip{display:inline-block; font-size:.68rem; font-weight:700; border-radius:99px;
+  padding:1px 9px; font-variant-numeric:tabular-nums}
+.chip.ok{color:var(--text-secondary); background:var(--page); border:1px solid var(--border)}
+.chip.warn{color:#7a5200; background:rgba(250,178,25,.18)}
+.chip.crit{color:#fff; background:var(--status-critical)}
+.chip.na{color:var(--text-muted); background:none; border:1px dashed var(--border)}
+@media (prefers-color-scheme: dark){ .chip.warn{color:#ffd479} }
+
 button{
   font:inherit; font-size:.8rem; font-weight:700; cursor:pointer;
   border:1px solid var(--border); border-radius:8px; padding:8px 14px;
@@ -58,99 +95,110 @@ button{
 button:hover{background:var(--page)}
 button.primary{background:var(--accent); border-color:var(--accent); color:#fff}
 button.primary:hover{opacity:.9}
-button.danger{color:var(--status-critical)}
+button.del{border:none; background:none; color:var(--text-muted); font-size:1rem; padding:4px 8px}
+button.del:hover{color:var(--status-critical); background:none}
 button.small{font-size:.72rem; padding:4px 10px}
 button:disabled{opacity:.45; cursor:not-allowed}
-
-table{width:100%; border-collapse:collapse; font-size:.78rem}
-th,td{padding:5px 6px; border-bottom:1px solid var(--grid); text-align:left; vertical-align:middle}
-th{color:var(--text-secondary); font-size:.68rem; white-space:nowrap}
-td.num{width:7.5em}
-td.act{width:4.5em; text-align:center; white-space:nowrap}
 .addrow{margin-top:10px}
-.tablewrap{overflow-x:auto}
-.tablewrap table{min-width:720px}
 
+/* 設定タブ */
+.tokenrow{display:flex; gap:10px; align-items:end; flex-wrap:wrap}
+.tokenrow .grow{flex:1; min-width:240px}
+.tokenrow input{
+  font:inherit; font-size:.82rem; color:var(--text-primary); width:100%;
+  background:var(--page); border:1px solid var(--border); border-radius:8px; padding:7px 10px;
+}
+.check{display:flex; align-items:center; gap:6px; font-size:.74rem; color:var(--text-secondary); margin-top:8px}
+.notice{background:var(--page); border:1px solid var(--border); border-radius:8px;
+  padding:8px 12px; font-size:.72rem; color:var(--text-secondary); margin-top:10px; line-height:1.7}
+
+/* 保存バー */
 .savebar{
   position:fixed; bottom:0; left:0; right:0; z-index:40;
   background:var(--surface-1); border-top:1px solid var(--border);
   padding:12px 20px;
 }
-.savebar .inner{max-width:1080px; margin:0 auto; display:flex; gap:12px; align-items:center; flex-wrap:wrap}
+.savebar .inner{max-width:1180px; margin:0 auto; display:flex; gap:12px; align-items:center; flex-wrap:wrap}
 #status{font-size:.76rem; color:var(--text-secondary); flex:1; min-width:200px}
 #status.ok{color:var(--good-text); font-weight:700}
 #status.err{color:var(--status-critical); font-weight:700}
-.summary{font-size:.74rem; color:var(--text-muted)}
-.notice{background:var(--page); border:1px solid var(--border); border-radius:8px;
-  padding:8px 12px; font-size:.72rem; color:var(--text-secondary); margin-top:10px; line-height:1.7}
+#dirtyMark{display:none; font-size:.72rem; font-weight:700; color:var(--status-warning)}
+#dirtyMark.show{display:inline}
 </style>
 </head>
 <body>
 
 <header>
-  <h1>管理者画面 ─ 避難所・物資 状況入力</h1>
-  <p class="sub">保存すると<a href="index.html">市民向けページ</a>に反映されます（反映まで1〜2分かかることがあります）</p>
+  <h1>管理者画面</h1>
+  <span class="sub">避難所・物資の状況入力 ─ 保存すると<a href="index.html">市民向けページ</a>に反映（1〜2分）</span>
 </header>
 
 <div class="container">
 
-  <section class="card">
-    <h2>接続設定</h2>
-    <p class="desc">現在の公開データは開いたときに自動で表示されます。<b>保存には</b> GitHub のアクセストークン（このリポジトリの Contents: Read and write 権限）が必要です。トークンは GitHub にのみ送信され、他のサーバーには送られません。</p>
-    <div class="tokenrow">
-      <div class="grow">
-        <label for="token">アクセストークン（保存時に必要）</label>
-        <input type="password" id="token" placeholder="github_pat_..." autocomplete="off">
+  <div class="tabs" role="tablist">
+    <button class="tab active" data-panel="shelter">避難所<span class="cnt" id="cntShelter"></span></button>
+    <button class="tab" data-panel="shortage">不足物資<span class="cnt" id="cntShortage"></span></button>
+    <button class="tab" data-panel="supply">物資在庫<span class="cnt" id="cntSupply"></span></button>
+    <button class="tab" data-panel="settings">設定</button>
+  </div>
+
+  <section class="panel active" id="panel-shelter">
+    <div class="card">
+      <p class="desc">受入可能数（定員）と現在の避難者数を入力してください。稼働率は自動計算されます。緯度・経度は地図表示用（Googleマップで地点を右クリックしてコピー。空欄だと地図に出ません）。</p>
+      <div class="tablewrap">
+        <table>
+          <thead><tr><th>避難所名</th><th>地区</th><th class="num">定員(人)</th><th class="num">避難者(人)</th><th class="num">稼働率</th><th class="num">緯度</th><th class="num">経度</th><th></th></tr></thead>
+          <tbody id="shelterBody"></tbody>
+        </table>
       </div>
-      <button id="loadBtn">最新データを読み込み直す</button>
+      <button class="small addrow" id="addShelter">＋ 避難所を追加</button>
     </div>
-    <div class="check">
-      <input type="checkbox" id="saveToken" checked>
-      <label for="saveToken" style="font-weight:400">この端末にトークンを保存する（共用端末では外してください）</label>
-    </div>
-    <div class="notice" id="repoInfo"></div>
   </section>
 
-  <section class="card">
-    <h2>避難所の受入状況</h2>
-    <p class="desc">避難所ごとの受入可能数（定員）と現在の避難者数を入力してください。行の追加・削除もできます。緯度・経度は地図表示に使います（Googleマップで地点を右クリックすると座標をコピーできます。空欄の避難所は地図に表示されません）。</p>
-    <div class="tablewrap">
-      <table>
-        <thead><tr><th>避難所名</th><th>地区</th><th style="text-align:right">受入可能数（人）</th><th style="text-align:right">避難者数（人）</th><th style="text-align:right">緯度</th><th style="text-align:right">経度</th><th></th></tr></thead>
-        <tbody id="shelterBody"></tbody>
-      </table>
+  <section class="panel" id="panel-shortage">
+    <div class="card">
+      <p class="desc">各避難所から報告された「いま足りていない物資」を入力してください。市民向けページの一覧と地図のポップアップに表示されます。<b>解消したら行を削除</b>してください。</p>
+      <div class="tablewrap">
+        <table>
+          <thead><tr><th>避難所</th><th>品目</th><th class="num">数量</th><th>単位</th><th></th></tr></thead>
+          <tbody id="shortageBody"></tbody>
+        </table>
+      </div>
+      <button class="small addrow" id="addShortage">＋ 不足物資を追加</button>
     </div>
-    <button class="small addrow" id="addShelter">＋ 避難所を追加</button>
   </section>
 
-  <section class="card">
-    <h2>避難所ごとの不足物資</h2>
-    <p class="desc">各避難所から報告された「いま足りていない物資」を入力してください。市民向けページの一覧と地図のポップアップに表示されます。解消したら行を削除してください。</p>
-    <div class="tablewrap">
-      <table>
-        <thead><tr><th>避難所</th><th>品目</th><th style="text-align:right">数量</th><th>単位</th><th></th></tr></thead>
-        <tbody id="shortageBody"></tbody>
-      </table>
+  <section class="panel" id="panel-supply">
+    <div class="card">
+      <p class="desc">「1人1日あたり」を入れると必要量/日は <b>避難者数×1人1日あたり</b> で自動計算されます（例: 飲料水6本、食料3食、簡易トイレ0.02基=50人に1基）。人数から計算できない品目（ミルク等）は空欄にして必要量を手入力。充足率＝(在庫＋手配中)÷必要量/日。必要量0の品目は市民向けページに表示されません。</p>
+      <div class="tablewrap">
+        <table>
+          <thead><tr><th>品目名</th><th>単位</th><th class="num">1人1日あたり</th><th class="num">必要量/日</th><th class="num">在庫</th><th class="num">手配中</th><th class="num">充足率</th><th></th></tr></thead>
+          <tbody id="supplyBody"></tbody>
+        </table>
+      </div>
+      <button class="small addrow" id="addSupply">＋ 品目を追加</button>
     </div>
-    <button class="small addrow" id="addShortage">＋ 不足物資を追加</button>
   </section>
 
-  <section class="card">
-    <h2>物資の調達状況</h2>
-    <p class="desc">「1人1日あたり」を入力すると、必要量/日は <b>現在の避難者数×1人1日あたり</b> で自動計算され、避難者数を変えると自動で追従します（例: 飲料水6本、食料3食、簡易トイレ0.02基=50人に1基）。人数から計算できない品目（ミルク等）は「1人1日あたり」を空欄にして必要量を手入力してください。必要量0の品目は「入力待ち」扱いで市民向けページには表示されません。</p>
-    <div class="tablewrap">
-      <table>
-        <thead><tr><th>品目名</th><th>単位</th><th style="text-align:right">1人1日あたり</th><th style="text-align:right">必要量/日</th><th style="text-align:right">在庫</th><th style="text-align:right">調達手配中</th><th></th></tr></thead>
-        <tbody id="supplyBody"></tbody>
-      </table>
+  <section class="panel" id="panel-settings">
+    <div class="card">
+      <h2>保存用トークン</h2>
+      <p class="desc">閲覧・編集は誰でもできます。<b>保存には</b> GitHub のアクセストークン（このリポジトリの Contents: Read and write 権限）が必要です。トークンは GitHub にのみ送信されます。</p>
+      <div class="tokenrow">
+        <div class="grow">
+          <label for="token">アクセストークン</label>
+          <input type="password" id="token" placeholder="github_pat_..." autocomplete="off">
+        </div>
+        <button id="loadBtn">最新データを読み込み直す</button>
+      </div>
+      <div class="check">
+        <input type="checkbox" id="saveToken" checked>
+        <label for="saveToken" style="font-weight:400">この端末にトークンを保存する（共用端末では外してください）</label>
+      </div>
+      <div class="notice" id="repoInfo"></div>
+      <div class="notice" id="trendSummary"></div>
     </div>
-    <button class="small addrow" id="addSupply">＋ 品目を追加</button>
-  </section>
-
-  <section class="card">
-    <h2>避難者数の推移</h2>
-    <p class="desc">推移は自動で記録されます。保存すると、その日の地区別合計が推移グラフに追記されます（同じ日に複数回保存した場合は上書き）。手入力は不要です。</p>
-    <div class="summary" id="trendSummary"></div>
   </section>
 
 </div>
@@ -158,6 +206,7 @@ td.act{width:4.5em; text-align:center; white-space:nowrap}
 <div class="savebar">
   <div class="inner">
     <span id="status">公開データを読み込み中…</span>
+    <span id="dirtyMark">● 未保存の変更があります</span>
     <button class="primary" id="saveBtn" disabled>保存して公開</button>
   </div>
 </div>
@@ -177,13 +226,30 @@ document.getElementById("repoInfo").textContent =
   `保存先: github.com/${OWNER}/${REPO} の ${BRANCH} ブランチ（${PATH}）。` +
   "トークンは GitHub → Settings → Developer settings → Fine-grained personal access tokens で、このリポジトリのみ・Contents: Read and write 権限で作成してください。";
 
-let data = null;          // 読み込んだ data.json
-let fileSha = null;       // 上書き保存に必要な現在ファイルのSHA
+let data = null;
+let fileSha = null;
 let dirty = false;
 
 const $ = id => document.getElementById(id);
 const status = $("status");
+const fmt = n => n.toLocaleString("ja-JP");
 function setStatus(msg, cls){ status.textContent = msg; status.className = cls || ""; }
+function markDirty(){ dirty = true; $("dirtyMark").classList.add("show"); }
+function clearDirty(){ dirty = false; $("dirtyMark").classList.remove("show"); }
+
+/* ---------- タブ ---------- */
+document.querySelectorAll(".tab[data-panel]").forEach(btn => {
+  btn.addEventListener("click", () => {
+    document.querySelectorAll(".tab").forEach(b => b.classList.toggle("active", b === btn));
+    document.querySelectorAll(".panel").forEach(p =>
+      p.classList.toggle("active", p.id === "panel-" + btn.dataset.panel));
+  });
+});
+function updateTabCounts(){
+  $("cntShelter").textContent = `(${$("shelterBody").children.length})`;
+  $("cntShortage").textContent = `(${$("shortageBody").children.length})`;
+  $("cntSupply").textContent = `(${$("supplyBody").children.length})`;
+}
 
 /* ---------- トークン ---------- */
 const tokenInput = $("token");
@@ -204,7 +270,6 @@ function ghHeaders(){
     "X-GitHub-Api-Version": "2022-11-28"
   };
 }
-// UTF-8 → base64
 const b64encode = s => btoa(String.fromCharCode(...new TextEncoder().encode(s)));
 const b64decode = s => new TextDecoder().decode(Uint8Array.from(atob(s), c => c.charCodeAt(0)));
 
@@ -222,7 +287,6 @@ async function saveToGitHub(body, message){
   const payload = { message, content: b64encode(body), branch: BRANCH, sha: fileSha };
   let res = await fetch(API, { method:"PUT", headers: ghHeaders(), body: JSON.stringify(payload) });
   if (res.status === 409 || res.status === 422){
-    // 他の管理者が先に保存した場合：最新SHAを取り直して1回だけ再試行
     await fetchLatest();
     payload.sha = fileSha;
     res = await fetch(API, { method:"PUT", headers: ghHeaders(), body: JSON.stringify(payload) });
@@ -234,41 +298,69 @@ async function saveToGitHub(body, message){
   fileSha = json.content.sha;
 }
 
-/* ---------- フォーム描画 ---------- */
+/* ---------- 共通セル ---------- */
 function inputCell(value, opts){
   const td = document.createElement("td");
-  if (opts.num) td.className = "num";
+  if (opts.num) td.className = opts.cls || "num";
   const inp = document.createElement("input");
   if (opts.num){ inp.type = "number"; inp.min = "0"; inp.step = opts.step || "1"; }
   else inp.type = "text";
   if (opts.placeholder) inp.placeholder = opts.placeholder;
   inp.value = value;
-  inp.addEventListener("input", () => { dirty = true; });
+  inp.addEventListener("input", markDirty);
   td.appendChild(inp);
   return { td, inp };
 }
-function delCell(tr){
+function delCell(tr, label){
   const td = document.createElement("td"); td.className = "act";
-  const btn = document.createElement("button"); btn.className = "small danger"; btn.type = "button";
-  btn.textContent = "削除"; btn.title = "この行を削除";
+  const btn = document.createElement("button"); btn.className = "del"; btn.type = "button";
+  btn.textContent = "✕"; btn.title = (label || "この行") + "を削除";
   btn.addEventListener("click", () => {
-    if (confirm("この行を削除しますか？")) { tr.remove(); dirty = true; }
+    if (confirm((label || "この行") + "を削除しますか？")){
+      tr.remove(); markDirty(); updateTabCounts(); refreshAutoRequired();
+    }
   });
   td.appendChild(btn);
   return td;
 }
+function chipCell(){
+  const td = document.createElement("td"); td.className = "stat";
+  const chip = document.createElement("span"); chip.className = "chip na"; chip.textContent = "—";
+  td.appendChild(chip);
+  return { td, chip };
+}
+function setChip(chip, ratio, kind){
+  if (ratio === null){ chip.className = "chip na"; chip.textContent = "—"; return; }
+  const p = Math.round(ratio * 100) + "%";
+  if (kind === "occupancy"){
+    chip.className = "chip " + (ratio > 1 ? "crit" : ratio >= 0.9 ? "warn" : "ok");
+    chip.textContent = ratio > 1 ? "⛔" + p : ratio >= 0.9 ? "⚠" + p : p;
+  } else {
+    chip.className = "chip " + (ratio < 1 ? "crit" : "ok");
+    chip.textContent = ratio < 1 ? "⛔" + p : p;
+  }
+}
 
+/* ---------- 避難所 ---------- */
 function shelterRow(s){
   const tr = document.createElement("tr");
   const name = inputCell(s.name, {placeholder:"避難所名"});
   const district = inputCell(s.district, {placeholder:"地区名"});
   const cap = inputCell(s.capacity, {num:true});
   const occ = inputCell(s.occupants, {num:true});
-  const lat = inputCell(s.lat ?? "", {placeholder:"32.6xxx"});
-  const lng = inputCell(s.lng ?? "", {placeholder:"130.6xxx"});
-  lat.td.className = lng.td.className = "num";
+  const rate = chipCell();
+  const lat = inputCell(s.lat ?? "", {num:false, placeholder:"32.6…"});
+  const lng = inputCell(s.lng ?? "", {num:false, placeholder:"130.6…"});
+  lat.td.className = lng.td.className = "geo";
   lat.inp.style.textAlign = lng.inp.style.textAlign = "right";
-  tr.append(name.td, district.td, cap.td, occ.td, lat.td, lng.td, delCell(tr));
+  tr.append(name.td, district.td, cap.td, occ.td, rate.td, lat.td, lng.td, delCell(tr, "避難所"));
+  tr._refresh = () => {
+    const c = Number(cap.inp.value) || 0, o = Number(occ.inp.value) || 0;
+    setChip(rate.chip, c > 0 ? o / c : null, "occupancy");
+  };
+  cap.inp.addEventListener("input", tr._refresh);
+  occ.inp.addEventListener("input", tr._refresh);
+  tr._refresh();
   tr._get = () => {
     const latV = parseFloat(lat.inp.value), lngV = parseFloat(lng.inp.value);
     const o = {
@@ -282,7 +374,12 @@ function shelterRow(s){
   };
   return tr;
 }
-// 現在フォームに入力されている避難所名の一覧
+
+function totalOccupantsInput(){
+  return [...$("shelterBody").children].reduce((a,tr) => a + tr._get().occupants, 0);
+}
+
+/* ---------- 不足物資 ---------- */
 function currentShelterNames(){
   return [...$("shelterBody").children].map(tr => tr._get().name).filter(Boolean);
 }
@@ -297,7 +394,6 @@ function shortageRow(e){
       const o = document.createElement("option"); o.value = n; o.textContent = n;
       sel.appendChild(o);
     });
-    // 避難所リストに無い名前（改名直後など）も選択肢として残す
     if (prev && ![...sel.options].some(o => o.value === prev)){
       const o = document.createElement("option"); o.value = prev; o.textContent = prev;
       sel.appendChild(o);
@@ -305,13 +401,13 @@ function shortageRow(e){
     if (prev) sel.value = prev;
   };
   fill();
-  sel.addEventListener("focus", fill);   // 避難所名の編集を反映
-  sel.addEventListener("change", () => { dirty = true; });
+  sel.addEventListener("focus", fill);
+  sel.addEventListener("change", markDirty);
   selTd.appendChild(sel);
   const item = inputCell(e.item, {placeholder:"毛布・発電機 など"});
   const qty = inputCell(e.qty, {num:true});
   const unit = inputCell(e.unit, {placeholder:"枚・台 など"});
-  tr.append(selTd, item.td, qty.td, unit.td, delCell(tr));
+  tr.append(selTd, item.td, qty.td, unit.td, delCell(tr, "不足物資"));
   tr._get = () => ({
     shelter: sel.value,
     item: item.inp.value.trim(),
@@ -321,16 +417,17 @@ function shortageRow(e){
   return tr;
 }
 
+/* ---------- 物資 ---------- */
 function supplyRow(s){
   const tr = document.createElement("tr");
   const name = inputCell(s.name, {placeholder:"品目名"});
   const unit = inputCell(s.unit, {placeholder:"個・枚 など"});
-  const per = inputCell(s.perPerson || "", {num:true, step:"0.01", placeholder:"自動計算に使用"});
+  const per = inputCell(s.perPerson || "", {num:true, step:"0.01", placeholder:"空欄=手入力"});
   const req = inputCell(s.required, {num:true});
   const stock = inputCell(s.stock, {num:true});
   const inc = inputCell(s.incoming, {num:true});
-  tr.append(name.td, unit.td, per.td, req.td, stock.td, inc.td, delCell(tr));
-  // 1人1日あたりが入っている行は必要量を自動計算して編集不可にする
+  const fill = chipCell();
+  tr.append(name.td, unit.td, per.td, req.td, stock.td, inc.td, fill.td, delCell(tr, "品目"));
   tr._auto = () => {
     const p = parseFloat(per.inp.value);
     if (p > 0){
@@ -341,8 +438,11 @@ function supplyRow(s){
       req.inp.disabled = false;
       req.inp.title = "";
     }
+    const r = Number(req.inp.value) || 0;
+    const have = (Number(stock.inp.value) || 0) + (Number(inc.inp.value) || 0);
+    setChip(fill.chip, r > 0 ? have / r : null, "fill");
   };
-  per.inp.addEventListener("input", tr._auto);
+  [per.inp, req.inp, stock.inp, inc.inp].forEach(i => i.addEventListener("input", tr._auto));
   tr._auto();
   tr._get = () => {
     const p = parseFloat(per.inp.value);
@@ -359,15 +459,11 @@ function supplyRow(s){
   return tr;
 }
 
-// フォーム上の現在の総避難者数
-function totalOccupantsInput(){
-  return [...$("shelterBody").children].reduce((a,tr) => a + tr._get().occupants, 0);
-}
-// 避難者数の変更を必要量/日の自動計算に反映
 function refreshAutoRequired(){
   [...$("supplyBody").children].forEach(tr => tr._auto && tr._auto());
 }
 
+/* ---------- フォーム描画 ---------- */
 function renderForms(){
   const sb = $("shelterBody"); sb.textContent = "";
   data.shelters.forEach(s => sb.appendChild(shelterRow(s)));
@@ -377,28 +473,29 @@ function renderForms(){
   const pb = $("supplyBody"); pb.textContent = "";
   data.supplies.forEach(s => pb.appendChild(supplyRow(s)));
   refreshAutoRequired();
+  updateTabCounts();
   const t = data.trend || {dates:[], byDistrict:{}};
-  $("trendSummary").textContent = t.dates.length
-    ? `記録済み: ${t.dates[0]} 〜 ${t.dates[t.dates.length-1]}（${t.dates.length}日分・${Object.keys(t.byDistrict).length}地区）`
-    : "まだ記録がありません。最初の保存時から記録が始まります。";
+  $("trendSummary").textContent = "避難者数の推移は保存時に自動記録されます（同じ日に複数回保存した場合は上書き）。" +
+    (t.dates.length
+      ? `記録済み: ${t.dates[0]} 〜 ${t.dates[t.dates.length-1]}（${t.dates.length}日分・${Object.keys(t.byDistrict).length}地区）`
+      : "まだ記録がありません。最初の保存時から記録が始まります。");
   $("saveBtn").disabled = false;
 }
 
 $("addShelter").addEventListener("click", () => {
   $("shelterBody").appendChild(shelterRow({name:"", district:"", capacity:0, occupants:0, lat:"", lng:""}));
-  dirty = true;
+  markDirty(); updateTabCounts();
 });
-// 避難者数の入力・行削除に応じて必要量/日を追従させる
-$("shelterBody").addEventListener("input", refreshAutoRequired);
-$("shelterBody").addEventListener("click", () => setTimeout(refreshAutoRequired, 0));
 $("addShortage").addEventListener("click", () => {
   $("shortageBody").appendChild(shortageRow({shelter:"", item:"", qty:0, unit:""}));
-  dirty = true;
+  markDirty(); updateTabCounts();
 });
 $("addSupply").addEventListener("click", () => {
   $("supplyBody").appendChild(supplyRow({name:"", unit:"", required:0, stock:0, incoming:0}));
-  dirty = true;
+  markDirty(); updateTabCounts();
 });
+// 避難者数の変更を必要量/日の自動計算に反映
+$("shelterBody").addEventListener("input", refreshAutoRequired);
 
 /* ---------- 収集・検証・推移追記 ---------- */
 function jstNow(){
@@ -417,7 +514,6 @@ function collect(){
   const supplies = [...$("supplyBody").children].map(tr => tr._get())
     .filter(s => s.name);
   if (!shelters.length) throw new Error("避難所が1件も入力されていません");
-  // 必要量が0の品目は「入力待ち」として保存を許可（市民向けページには表示されない）
 
   // 不足物資を該当する避難所に紐づける
   const byName = Object.fromEntries(shelters.map(s => [s.name, s]));
@@ -447,10 +543,8 @@ function collect(){
     const arr = trend.byDistrict[d];
     const v = totals[d] || 0;
     if (sameDay) arr[lastIdx] = v; else arr.push(v);
-    // 配列長がずれた場合は0で揃える（過去データの欠損対策）
     while (arr.length < trend.dates.length) arr.splice(arr.length - 1, 0, 0);
   });
-  // 直近60日分だけ保持
   const KEEP = 60;
   if (trend.dates.length > KEEP){
     const cut = trend.dates.length - KEEP;
@@ -462,7 +556,6 @@ function collect(){
 }
 
 /* ---------- 読み込み・保存 ---------- */
-// トークン不要の読み込み: 同じディレクトリの公開 data.json を取得
 async function loadFromPublic(){
   setStatus("公開データを読み込み中…");
   try {
@@ -470,7 +563,7 @@ async function loadFromPublic(){
     if (!res.ok) throw new Error("HTTP " + res.status);
     data = await res.json();
     renderForms();
-    dirty = false;
+    clearDirty();
     setStatus(`現在の公開データを表示中（${data.updatedAt || "更新日時なし"}）。編集して保存できます`, "ok");
   } catch (e) {
     setStatus("公開データを取得できませんでした（" + e.message + "）。通信環境を確認して読み込み直してください", "err");
@@ -482,10 +575,12 @@ $("loadBtn").addEventListener("click", async () => {
   await loadFromPublic();
 });
 
-loadFromPublic();
-
 $("saveBtn").addEventListener("click", async () => {
-  if (!currentToken()){ setStatus("トークンを入力してください", "err"); return; }
+  if (!currentToken()){
+    setStatus("トークンを入力してください（「設定」タブ）", "err");
+    document.querySelector('.tab[data-panel="settings"]').click();
+    return;
+  }
   persistToken();
   let next;
   try { next = collect(); }
@@ -494,12 +589,12 @@ $("saveBtn").addEventListener("click", async () => {
   $("saveBtn").disabled = true;
   setStatus("保存中…");
   try {
-    await fetchLatest();   // 保存対象ファイルの最新SHAを取得（書き込み権限の事前確認を兼ねる）
+    await fetchLatest();   // 最新SHAを取得（書き込み権限の事前確認を兼ねる）
     const body = JSON.stringify(next, null, 2) + "\n";
     await saveToGitHub(body, `状況更新 ${next.updatedAt}`);
     data = next;
     renderForms();
-    dirty = false;
+    clearDirty();
     setStatus(`保存しました（${next.updatedAt}）。市民向けページには1〜2分で反映されます`, "ok");
   } catch (e) {
     setStatus(e.message, "err");
@@ -511,6 +606,8 @@ $("saveBtn").addEventListener("click", async () => {
 addEventListener("beforeunload", e => {
   if (dirty){ e.preventDefault(); e.returnValue = ""; }
 });
+
+loadFromPublic();
 </script>
 </body>
 </html>
