@@ -96,13 +96,13 @@ td.act{width:4.5em; text-align:center; white-space:nowrap}
 
   <section class="card">
     <h2>接続設定</h2>
-    <p class="desc">保存には GitHub のアクセストークン（このリポジトリの Contents: Read and write 権限）が必要です。トークンは GitHub にのみ送信され、他のサーバーには送られません。</p>
+    <p class="desc">現在の公開データは開いたときに自動で表示されます。<b>保存には</b> GitHub のアクセストークン（このリポジトリの Contents: Read and write 権限）が必要です。トークンは GitHub にのみ送信され、他のサーバーには送られません。</p>
     <div class="tokenrow">
       <div class="grow">
-        <label for="token">アクセストークン</label>
+        <label for="token">アクセストークン（保存時に必要）</label>
         <input type="password" id="token" placeholder="github_pat_..." autocomplete="off">
       </div>
-      <button id="loadBtn">最新データを読み込む</button>
+      <button id="loadBtn">最新データを読み込み直す</button>
     </div>
     <div class="check">
       <input type="checkbox" id="saveToken" checked>
@@ -145,7 +145,7 @@ td.act{width:4.5em; text-align:center; white-space:nowrap}
 
 <div class="savebar">
   <div class="inner">
-    <span id="status">トークンを入力して「最新データを読み込む」を押してください</span>
+    <span id="status">公開データを読み込み中…</span>
     <button class="primary" id="saveBtn" disabled>保存して公開</button>
   </div>
 </div>
@@ -361,20 +361,27 @@ function collect(){
 }
 
 /* ---------- 読み込み・保存 ---------- */
-$("loadBtn").addEventListener("click", async () => {
-  if (!currentToken()){ setStatus("トークンを入力してください", "err"); return; }
-  if (dirty && !confirm("未保存の変更があります。破棄して最新データを読み込みますか？")) return;
-  persistToken();
-  setStatus("読み込み中…");
+// トークン不要の読み込み: 同じディレクトリの公開 data.json を取得
+async function loadFromPublic(){
+  setStatus("公開データを読み込み中…");
   try {
-    data = await fetchLatest();
+    const res = await fetch("data.json?_=" + Date.now(), { cache: "no-store" });
+    if (!res.ok) throw new Error("HTTP " + res.status);
+    data = await res.json();
     renderForms();
     dirty = false;
-    setStatus(`読み込みました（${data.updatedAt || "更新日時なし"}）`, "ok");
+    setStatus(`現在の公開データを表示中（${data.updatedAt || "更新日時なし"}）。編集して保存できます`, "ok");
   } catch (e) {
-    setStatus(e.message, "err");
+    setStatus("公開データを取得できませんでした（" + e.message + "）。通信環境を確認して読み込み直してください", "err");
   }
+}
+
+$("loadBtn").addEventListener("click", async () => {
+  if (dirty && !confirm("未保存の変更があります。破棄して最新データを読み込みますか？")) return;
+  await loadFromPublic();
 });
+
+loadFromPublic();
 
 $("saveBtn").addEventListener("click", async () => {
   if (!currentToken()){ setStatus("トークンを入力してください", "err"); return; }
@@ -386,6 +393,7 @@ $("saveBtn").addEventListener("click", async () => {
   $("saveBtn").disabled = true;
   setStatus("保存中…");
   try {
+    await fetchLatest();   // 保存対象ファイルの最新SHAを取得（書き込み権限の事前確認を兼ねる）
     const body = JSON.stringify(next, null, 2) + "\n";
     await saveToGitHub(body, `状況更新 ${next.updatedAt}`);
     data = next;
