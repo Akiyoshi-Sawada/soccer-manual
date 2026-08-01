@@ -1,37 +1,31 @@
 {
-  "updatedAt": "2026-08-01 09:00 更新",
+  "updatedAt": "2026-08-01 初期登録（人数・物資は入力待ち）",
   "sample": true,
   "shelters": [
-    { "name": "中央小学校", "district": "中央地区", "capacity": 450, "occupants": 512 },
-    { "name": "中央公民館", "district": "中央地区", "capacity": 200, "occupants": 168 },
-    { "name": "第二中学校", "district": "中央地区", "capacity": 600, "occupants": 430 },
-    { "name": "港小学校", "district": "港地区", "capacity": 380, "occupants": 395 },
-    { "name": "港スポーツセンター", "district": "港地区", "capacity": 800, "occupants": 610 },
-    { "name": "港南会館", "district": "港地区", "capacity": 150, "occupants": 88 },
-    { "name": "山手小学校", "district": "山手地区", "capacity": 400, "occupants": 210 },
-    { "name": "山手台高校", "district": "山手地区", "capacity": 550, "occupants": 275 },
-    { "name": "山手コミュニティセンター", "district": "山手地区", "capacity": 120, "occupants": 118 },
-    { "name": "川北中学校", "district": "川北地区", "capacity": 500, "occupants": 465 },
-    { "name": "川北会館", "district": "川北地区", "capacity": 180, "occupants": 95 },
-    { "name": "川北体育館", "district": "川北地区", "capacity": 700, "occupants": 380 }
+    { "name": "三角防災拠点センター", "district": "三角町", "capacity": 0, "occupants": 0, "lat": 32.6160, "lng": 130.4890 },
+    { "name": "不知火防災拠点センター", "district": "不知火町", "capacity": 0, "occupants": 0, "lat": 32.64634, "lng": 130.66808 },
+    { "name": "不知火小学校 ２Ｆ交流スペース", "district": "不知火町", "capacity": 0, "occupants": 0, "lat": 32.64461, "lng": 130.66183 },
+    { "name": "松橋東防災拠点センター", "district": "松橋町", "capacity": 0, "occupants": 0, "lat": 32.6322, "lng": 130.7066 },
+    { "name": "松橋西防災拠点センター", "district": "松橋町", "capacity": 0, "occupants": 0, "lat": 32.65166, "lng": 130.67907 },
+    { "name": "ウイングまつばせ", "district": "松橋町", "capacity": 0, "occupants": 0, "lat": 32.6480, "lng": 130.6832 },
+    { "name": "松橋中学校 武道館", "district": "松橋町", "capacity": 0, "occupants": 0, "lat": 32.6510, "lng": 130.6785 },
+    { "name": "小川防災拠点センター", "district": "小川町", "capacity": 0, "occupants": 0, "lat": 32.59258, "lng": 130.70450 },
+    { "name": "小野部田小学校 体育館", "district": "小川町", "capacity": 0, "occupants": 0, "lat": 32.60698, "lng": 130.71903 },
+    { "name": "豊野防災拠点センター", "district": "豊野町", "capacity": 0, "occupants": 0, "lat": 32.6404, "lng": 130.7532 },
+    { "name": "小川中学校 体育館", "district": "小川町", "capacity": 0, "occupants": 0, "lat": 32.58945, "lng": 130.71384 }
   ],
   "supplies": [
-    { "name": "飲料水", "unit": "本(500ml)", "required": 33800, "stock": 21500, "incoming": 8000 },
-    { "name": "食料", "unit": "食", "required": 33800, "stock": 18200, "incoming": 12000 },
-    { "name": "毛布", "unit": "枚", "required": 4500, "stock": 4100, "incoming": 800 },
-    { "name": "簡易トイレ", "unit": "基", "required": 190, "stock": 96, "incoming": 40 },
-    { "name": "衛生用品セット", "unit": "組", "required": 3800, "stock": 2900, "incoming": 1200 },
-    { "name": "乳幼児用ミルク", "unit": "缶", "required": 320, "stock": 140, "incoming": 60 },
-    { "name": "おむつ", "unit": "枚", "required": 8600, "stock": 5200, "incoming": 2400 },
-    { "name": "生理用品", "unit": "パック", "required": 1500, "stock": 1350, "incoming": 400 }
+    { "name": "飲料水", "unit": "本(500ml)", "required": 0, "stock": 0, "incoming": 0 },
+    { "name": "食料", "unit": "食", "required": 0, "stock": 0, "incoming": 0 },
+    { "name": "毛布", "unit": "枚", "required": 0, "stock": 0, "incoming": 0 },
+    { "name": "簡易トイレ", "unit": "基", "required": 0, "stock": 0, "incoming": 0 },
+    { "name": "衛生用品セット", "unit": "組", "required": 0, "stock": 0, "incoming": 0 },
+    { "name": "乳幼児用ミルク", "unit": "缶", "required": 0, "stock": 0, "incoming": 0 },
+    { "name": "おむつ", "unit": "枚", "required": 0, "stock": 0, "incoming": 0 },
+    { "name": "生理用品", "unit": "パック", "required": 0, "stock": 0, "incoming": 0 }
   ],
   "trend": {
-    "dates": ["7/26", "7/27", "7/28", "7/29", "7/30", "7/31", "8/1"],
-    "byDistrict": {
-      "中央地区": [420, 780, 950, 1080, 1120, 1110, 1110],
-      "港地区": [350, 640, 830, 980, 1050, 1090, 1093],
-      "山手地区": [180, 360, 480, 560, 590, 600, 603],
-      "川北地区": [300, 520, 700, 820, 890, 930, 940]
-    }
+    "dates": [],
+    "byDistrict": {}
   }
 }
