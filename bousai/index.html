@@ -439,7 +439,8 @@ function renderKPIs(shelters, supplies){
   const totalCap = shelters.reduce((a,s) => a + s.capacity, 0);
   const rate = totalCap ? totalOcc / totalCap : 0;
   const over = shelters.filter(s => s.occupants > s.capacity).length;
-  const short = supplies.filter(s => s.stock + s.incoming < s.required).length;
+  const validSupplies = supplies.filter(s => s.required > 0);
+  const short = validSupplies.filter(s => s.stock + s.incoming < s.required).length;
 
   function tile({label, value, unit, hero, note, noteCrit, meter}){
     const t = document.createElement("div"); t.className = "tile";
@@ -469,8 +470,10 @@ function renderKPIs(shelters, supplies){
          note:`稼働率 ${pct(rate)}%`, meter:rate });
   tile({ label:"開設避難所", value:fmt(shelters.length), unit:"ヶ所",
          note: over > 0 ? `⛔ うち定員超過 ${over}ヶ所` : "定員超過なし", noteCrit: over > 0 });
-  tile({ label:"物資の不足品目", value:fmt(short), unit:"品目",
-         note: short > 0 ? "手配分を含めても必要量に未達" : "すべて充足見込み", noteCrit: short > 0 });
+  tile({ label:"物資の不足品目", value: validSupplies.length ? fmt(short) : "－", unit: validSupplies.length ? "品目" : "",
+         note: !validSupplies.length ? "物資データは入力待ち"
+             : short > 0 ? "手配分を含めても必要量に未達" : "すべて充足見込み",
+         noteCrit: short > 0 });
 }
 
 /* ---------- 避難所別チャート（人数の共通スケール横棒） ---------- */
@@ -556,9 +559,18 @@ function renderShelters(shelters){
 }
 
 /* ---------- 物資チャート（必要量=100% の充足率スケール） ---------- */
-function renderSupplies(supplies){
+function renderSupplies(allSupplies){
   const box = document.getElementById("supplyChart");
   box.textContent = "";
+  const supplies = allSupplies.filter(s => s.required > 0);
+  if (!supplies.length){
+    const p = document.createElement("p");
+    p.style.cssText = "font-size:.78rem;color:var(--text-muted)";
+    p.textContent = "物資データは入力待ちです。";
+    box.appendChild(p);
+    document.getElementById("supplyTable").textContent = "";
+    return;
+  }
   const sorted = [...supplies].sort((a,b) =>
     (a.stock + a.incoming)/a.required - (b.stock + b.incoming)/b.required);
   const maxRatio = Math.max(1, ...sorted.map(s => (s.stock+s.incoming)/s.required));

@@ -125,7 +125,7 @@ td.act{width:4.5em; text-align:center; white-space:nowrap}
 
   <section class="card">
     <h2>物資の調達状況</h2>
-    <p class="desc">品目ごとの必要量・在庫・調達手配中の量を入力してください。</p>
+    <p class="desc">品目ごとの必要量・在庫・調達手配中の量を入力してください。必要量が0の品目は「入力待ち」扱いとなり、市民向けページには表示されません。</p>
     <div class="tablewrap">
       <table>
         <thead><tr><th>品目名</th><th>単位</th><th style="text-align:right">必要量</th><th style="text-align:right">在庫</th><th style="text-align:right">調達手配中</th><th></th></tr></thead>
@@ -326,8 +326,7 @@ function collect(){
   const supplies = [...$("supplyBody").children].map(tr => tr._get())
     .filter(s => s.name);
   if (!shelters.length) throw new Error("避難所が1件も入力されていません");
-  const badSupply = supplies.find(s => s.required <= 0);
-  if (badSupply) throw new Error(`「${badSupply.name}」の必要量を1以上にしてください`);
+  // 必要量が0の品目は「入力待ち」として保存を許可（市民向けページには表示されない）
 
   const now = jstNow();
 
