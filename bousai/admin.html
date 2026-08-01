@@ -139,6 +139,7 @@ button:disabled{opacity:.45; cursor:not-allowed}
     <button class="tab active" data-panel="shelter">避難所<span class="cnt" id="cntShelter"></span></button>
     <button class="tab" data-panel="stocks">避難所在庫</button>
     <button class="tab" data-panel="supply">物資在庫<span class="cnt" id="cntSupply"></span></button>
+    <button class="tab" data-panel="suggest">融通提案<span class="cnt" id="cntSuggest"></span></button>
     <button class="tab" data-panel="settings">設定</button>
   </div>
 
@@ -182,6 +183,19 @@ button:disabled{opacity:.45; cursor:not-allowed}
         </table>
       </div>
       <button class="small addrow" id="addSupply">＋ 品目を追加</button>
+    </div>
+  </section>
+
+  <section class="panel" id="panel-suggest">
+    <div class="card">
+      <p class="desc">現在の入力内容から、不足している避難所への物資の回し方を自動で提案します（<b>本部・倉庫の在庫を優先</b>し、足りない分は在庫に余裕のある避難所からの融通案を表示）。提案どおり配送したら、「避難所在庫」タブで在庫を付け替えて保存してください。この提案は管理者画面のみの表示で、市民向けページには出ません。</p>
+      <div class="tablewrap">
+        <table>
+          <thead><tr><th>品目</th><th class="num">数量</th><th>出し手</th><th></th><th>受け手（不足避難所）</th><th class="num">充足後</th></tr></thead>
+          <tbody id="suggestBody"></tbody>
+        </table>
+      </div>
+      <p class="desc" id="suggestEmpty" style="display:none; margin-top:10px">現在、融通が必要な不足はありません。</p>
     </div>
   </section>
 
@@ -248,6 +262,7 @@ document.querySelectorAll(".tab[data-panel]").forEach(btn => {
     document.querySelectorAll(".panel").forEach(p =>
       p.classList.toggle("active", p.id === "panel-" + btn.dataset.panel));
     if (btn.dataset.panel === "stocks") refreshStocksPanel();
+    if (btn.dataset.panel === "suggest") renderSuggestions();
   });
 });
 function updateTabCounts(){
@@ -491,6 +506,82 @@ function refreshAutoRequired(){
   [...$("supplyBody").children].forEach(tr => tr._auto && tr._auto());
 }
 
+/* ---------- 融通提案（本部在庫→不足避難所、次に余裕のある避難所→不足避難所） ---------- */
+function computeSuggestions(){
+  const shelters = [...$("shelterBody").children].map(tr => ({ s: tr._get(), stocks: tr._stocks }))
+    .filter(x => x.s.name);
+  const items = [...$("supplyBody").children].map(tr => tr._get()).filter(i => i.name);
+  const hqStock = Object.fromEntries(items.map(i => [i.name, i.stock]));
+  const out = [];
+  items.forEach(item => {
+    const entries = shelters.map(x => {
+      const need = shelterNeedOf(x.s.occupants, item);
+      const have = x.stocks[item.name] || 0;
+      return { name: x.s.name, need, have, diff: have - need };
+    });
+    // 不足の大きい順に、本部在庫→余剰避難所の順で割り当て
+    const deficits = entries.filter(e => e.need > 0 && e.diff < 0)
+      .map(e => ({ name: e.name, lack: -e.diff, need: e.need, have: e.have }))
+      .sort((a,b) => b.lack/b.need - a.lack/a.need);
+    const donors = entries.filter(e => e.diff > 0)
+      .map(e => ({ name: e.name, extra: e.diff }))
+      .sort((a,b) => b.extra - a.extra);
+    let hq = hqStock[item.name] || 0;
+    deficits.forEach(d => {
+      let rest = d.lack, got = 0;
+      if (hq > 0 && rest > 0){
+        const q = Math.min(hq, rest);
+        out.push({ item: item.name, unit: item.unit, qty: q, from: "本部・倉庫", to: d.name, hq: true, d });
+        hq -= q; rest -= q; got += q;
+      }
+      // 細切れの融通は避ける: 1回あたり必要量の5%以上、出し手は最大2避難所まで
+      const minQ = Math.max(1, Math.ceil(d.need * 0.05));
+      let donorCount = 0;
+      for (const don of donors){
+        if (rest <= 0 || donorCount >= 2) break;
+        if (don.extra <= 0) continue;
+        const q = Math.min(don.extra, rest);
+        if (q < minQ) continue;
+        out.push({ item: item.name, unit: item.unit, qty: q, from: don.name, to: d.name, hq: false, d });
+        don.extra -= q; rest -= q; got += q; donorCount++;
+      }
+      d.after = (d.have + got) / d.need;   // 提案どおり配送した場合の充足率
+      d.unresolved = rest;
+    });
+  });
+  return out;
+}
+
+function renderSuggestions(){
+  const body = $("suggestBody");
+  body.textContent = "";
+  const list = computeSuggestions();
+  $("suggestEmpty").style.display = list.length ? "none" : "block";
+  $("cntSuggest").textContent = list.length ? `(${list.length})` : "";
+  list.forEach(x => {
+    const tr = document.createElement("tr");
+    const cells = [
+      x.item,
+      `${fmt(x.qty)}${x.unit}`,
+      x.from,
+      "→",
+      x.to,
+      Math.round(x.d.after * 100) + "%" + (x.d.unresolved > 0 ? `（なお${fmt(x.d.unresolved)}${x.unit}不足）` : "")
+    ];
+    cells.forEach((c, i) => {
+      const td = document.createElement("td");
+      td.textContent = c;
+      td.style.padding = "7px 8px";
+      if (i === 1 || i === 5) { td.style.textAlign = "right"; td.style.fontVariantNumeric = "tabular-nums"; }
+      if (i === 1) td.style.fontWeight = "700";
+      if (i === 2 && x.hq) td.style.color = "var(--accent)";
+      if (i === 3) td.style.color = "var(--text-muted)";
+      tr.appendChild(td);
+    });
+    body.appendChild(tr);
+  });
+}
+
 /* ---------- フォーム描画 ---------- */
 function renderForms(){
   const sb = $("shelterBody"); sb.textContent = "";
@@ -499,6 +590,7 @@ function renderForms(){
   data.supplies.forEach(s => pb.appendChild(supplyRow(s)));
   refreshAutoRequired();
   refreshStocksPanel();
+  renderSuggestions();
   updateTabCounts();
   const t = data.trend || {dates:[], byDistrict:{}};
   $("trendSummary").textContent = "避難者数の推移は保存時に自動記録されます（同じ日に複数回保存した場合は上書き）。" +
